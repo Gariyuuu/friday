@@ -1,10 +1,44 @@
 # Project State
 
-Last updated: 2026-08-07 (session 4, part 3 — Phase 10 (gestures), Phase 11
-completion (global shortcut, tray, autostart), and the rest of Phase 3 (web/video
-search) + Phase 2/5 (focus_event) all built, all real bugs found via live testing
-already fixed). Everything except Phase 8/9 (cloud VM — user said "not yet") is now
-either verified live or verified as thoroughly as this environment allows.
+Last updated: 2026-08-07 (session 4, part 5 — Phase 8 infrastructure stood up: a
+real DigitalOcean droplet is live and hardened. Phase 9, the actual gateway/agent
+software that lets the Mac talk to it, is NOT built yet — see below).
+
+Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
+
+## Phase 8 — Cloud VM infrastructure (droplet live, agent software not started)
+
+User approved provider (DigitalOcean) and budget (~$5-10/mo, always-on) this
+session, then provided a real DO personal access token. What's actually done:
+
+- **Real droplet provisioned**: `friday-vm-agent`, DigitalOcean, region `nyc1`,
+  `s-1vcpu-1gb` ($6/mo), Ubuntu 26.04 LTS, id `590685636`, public IP
+  `165.22.184.128`. Tagged `friday`. **Found and reused an existing, unrelated
+  droplet + SSH key already on this account** (`ubuntu-s-1vcpu-1gb-nyc1`, from
+  the separate `ai-platform` project's vLLM box) — confirmed by fingerprint match
+  that this Mac's `~/.ssh/id_ed25519.pub` was already registered there, so no new
+  key was added; the existing unrelated droplet was left untouched.
+- **Baseline hardening applied and verified over a real SSH session** (not just
+  "the script exited 0"): non-root `friday` user created (sudo + docker groups,
+  confirmed via `whoami`/`groups` over SSH), SSH password authentication and root
+  login disabled (`sshd_config`, key-only from here on), a 2GB swap file added
+  (this droplet only has 1GB RAM — needed headroom for Docker + future browser
+  automation), UFW firewall enabled default-deny-incoming with only SSH allowed
+  (confirmed via `ufw status` showing just OpenSSH), unattended security upgrades
+  configured, Docker installed and confirmed working (`docker ps` succeeded as
+  the non-root `friday` user).
+- **The DigitalOcean API token was used in-memory for this session only and was
+  never written to any file** (not `.env.local`, not the repo, not a scratch
+  file) — grep-confirmed no local file contains it. If more provisioning is
+  needed later (resize, destroy, snapshot), it'll need to be provided again or a
+  scoped-down token created for that purpose specifically.
+- **Not built yet — this is the real remaining work, not a formality**: the
+  actual gateway service that runs on this VM and lets the Mac send it tasks
+  (authenticated request/response per `docs/SECURITY.md`'s already-written threat
+  model), the sandboxed execution environment for those tasks (Docker containers,
+  not raw host access), browser automation tooling, and the Mac-side client that
+  talks to it. The droplet is infrastructure — it does nothing on its own yet.
+  This is a substantial software build, not a follow-up tweak.
 
 Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
@@ -137,11 +171,17 @@ Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
   checks for `501` to hide the section entirely rather than show an error, and
   `MediaPanel` checks `/api/config`'s `intelligence.video` flag for its idle-state
   copy.
-- **Verified**: both routes checked live with keys unset — confirmed real `501`
+- **Verified with keys unset**: both routes checked live — confirmed real `501`
   responses with the expected honest messages, no fabricated data, no console
-  errors. Full success-path verification (actual Tavily/YouTube results) needs the
-  user to add `SEARCH_API_KEY`/`YOUTUBE_API_KEY` — flagged in `.env.example`, not
-  blocking anything else.
+  errors.
+- **Verified with real keys, session 4 part 4/5**: user signed up for Tavily and a
+  YouTube Data API v3 key. First YouTube key pasted was invalid (Google returned
+  `API_KEY_INVALID` — confirmed by curling Google's API directly, bypassing this
+  app entirely, to isolate whether the bug was ours; it wasn't — the string was 40
+  characters instead of the standard 39, a copy-paste artifact); the corrected key
+  worked immediately. Both now return real results end-to-end through the actual
+  app routes: real Tavily search results, real YouTube video results (e.g. "SpaceX
+  launch" → real recent SpaceX coverage videos with real thumbnails).
 - **Geocoding, added same day (session 4, part 4)**: `lib/intelligence/sources/geocode.ts`
   extracts a place name from each real headline via OpenAI's Responses API
   (`gpt-5-nano`, cheapest current text model — verified live pricing 2026-08-07)
@@ -275,24 +315,26 @@ with zero extra infrastructure.
 
 ## Current
 
-Nothing in progress. Every phase except Phase 8/9 (cloud VM, user said "not yet")
-is either live and verified end-to-end, or verified as thoroughly as this
-environment allows with an honest note on what still needs the user (gesture
-accuracy against a real hand, the autostart toggle click, and success-path search/
-video results once those API keys are added).
+Every phase except Phase 9 (the VM gateway/agent software) is either live and
+verified end-to-end, or verified as thoroughly as this environment allows. Search
+and video keys are now live and verified (see below). Phase 8's infrastructure
+(the droplet) is live and hardened — Phase 9's actual software is the next real
+build, in progress next.
 
 ## Next
 
-- **Phase 8/9 (cloud VM + VM tools)**: user said "not yet" this session when asked
-  directly. Don't restart this without asking again — needs a provider/cost
-  decision and a reviewed threat model regardless.
-- **User action needed, not blocking anything else**: add `SEARCH_API_KEY`
-  (Tavily) and/or `YOUTUBE_API_KEY` to `.env.local` to light up real web/video
-  search results — both currently work correctly in their "not configured" state.
-- **User verification needed**: click the autostart toggle once inside the real
-  `pnpm desktop:dev` window (untestable via Playwright — see Phase 11 notes above)
-  and confirm gesture recognition feels accurate with a real hand in front of the
-  camera (Settings → Input).
+- **Phase 9 (VM gateway/agent software)**: the real next build. The droplet from
+  Phase 8 exists but runs nothing FRIDAY-specific yet. Needs: an authenticated
+  gateway service on the VM (per `docs/SECURITY.md`'s threat model — short-lived
+  tokens, schema-validated requests, no reverse control back to the Mac), a
+  Docker-sandboxed task execution environment (not raw host access), the Mac-side
+  client/tool that sends it work, and browser automation tooling. Substantial,
+  multi-step build — will be verified against the real droplet as it goes, same
+  discipline as every other phase.
+- **User verification needed**: confirm gesture recognition feels accurate with a
+  real hand in front of the camera (Settings → Input), and click the autostart
+  toggle once inside the real `pnpm desktop:dev` window if you ever want it on
+  (currently off by default, which you confirmed is what you want).
 - `pnpm desktop:build` (distributable, optionally signed `.app`/`.dmg`) — needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev`. Only
   relevant if/when sharing the app with someone else matters.

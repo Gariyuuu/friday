@@ -1,13 +1,15 @@
 # Security model
 
-## Current state (Phase 0/1/3/4/5/6/7/10/11)
+## Current state (Phase 0/1/3/4/5/6/7/10/11, Phase 8 infra only)
 
-Still no VM. Real security surfaces: server-side API keys (news, markets, search,
-video), real local tool execution (Phase 6), voice (Phase 4, an
-ephemeral-credential pattern), voice-triggered tool-calling (Phase 5), local
-memory storage (Phase 7), webcam access (Phase 10, gestures), and OS-level
-integrations — global shortcut, tray, autostart (Phase 11). All are live and
-worth understanding, not just "future work."
+A VM now exists (see "Phase 8 infrastructure status" below) but runs nothing
+FRIDAY-specific — no gateway, no agent, no path from the Mac to it yet. Real
+security surfaces: server-side API keys (news, markets, search, video), real
+local tool execution (Phase 6), voice (Phase 4, an ephemeral-credential pattern),
+voice-triggered tool-calling (Phase 5), local memory storage (Phase 7), webcam
+access (Phase 10, gestures), OS-level integrations — global shortcut, tray,
+autostart (Phase 11), and now a hardened but otherwise inert cloud host (Phase 8).
+All are live and worth understanding, not just "future work."
 
 - `.env.example` documents every credential. Nothing in the repo is a real secret.
   `.env` / `.env.local` are gitignored.
@@ -89,7 +91,21 @@ filesystem-wide read, no automatic AppleScript — see spec §22 for the exact a
 (open_application, open_url, volume, notification, system_status, and
 explicitly-user-selected file/clipboard reads only).
 
-## Threat model (for Phase 8+ — must be re-reviewed, not just referenced, before VM work starts)
+## Phase 8 infrastructure status (2026-08-07)
+
+A real VM now exists: DigitalOcean droplet `friday-vm-agent` (nyc1, 1 vCPU/1GB,
+Ubuntu 26.04 LTS). Baseline OS hardening is applied and verified over a real SSH
+session: non-root user only, SSH password auth + root login disabled (key-only),
+UFW default-deny-incoming with only SSH allowed, unattended security upgrades,
+Docker installed. **This is infrastructure, not the security model below** — no
+gateway service, no authentication scheme, no sandboxed task execution exists on
+it yet. The threat model in this section still describes the target architecture
+for Phase 9, which must be built to match it (not referenced as if already true)
+before the VM does anything beyond existing as a hardened, idle host. The
+DigitalOcean API token used to provision it was used in-memory only for that
+session and was not written to any file, including this repo.
+
+## Threat model (for Phase 9 — the VM gateway/agent software — must be built to match this, not just referenced)
 
 | Threat | Mitigation |
 |---|---|
