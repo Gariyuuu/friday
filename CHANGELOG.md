@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.0 — Real Browser Automation on the VM, Fixed a Real SSRF Bug
+
+- Phase 9 gained a second task type: `browse_on_vm` renders a real URL with
+  headless Chromium (Playwright) on the cloud VM and returns its title and
+  text content — actual JS-rendered content, verified against a random
+  Wikipedia article and Hacker News' live front page. Runs in a custom image
+  (`friday-browser:latest`, built once on the VM, not per-task) with real
+  resource limits that were confirmed to fit comfortably in the droplet's 1GB
+  RAM. Registered under the same `run_on_vm` critical-risk tool/approval
+  profile as shell tasks — one execution surface, two task shapes.
+- **Found and fixed a real SSRF vulnerability while building this**, not a
+  hypothetical: with the browse task's networking enabled, the container
+  could reach DigitalOcean's metadata service and successfully read back the
+  droplet's own cloud-init data — confirmed live. Fixed by blocking container
+  egress to the metadata service and this droplet's private VPC ranges at the
+  Docker `DOCKER-USER` iptables layer, made persistent across reboots via a
+  new systemd unit, and re-verified through the actual production SSH path
+  (not just as root) that the block holds while real browsing still works.
+
 ## 0.10.0 — Voice shortcut changed to ⌥+V, launchable app
 
 - Voice activation shortcut changed from ⌥+Space to ⌥+V (in-app listener, Tauri
@@ -33,7 +52,7 @@
   with one addition: the approval modal now shows a distinct warning banner and
   omits "Always Allow" for critical-risk tools, so every VM execution needs
   individual approval, no exceptions. Closes a gap flagged (but not built) in
-  `docs/SECURITY.md` since Phase 6.
+  `SECURITY.md` since Phase 6.
 - Verified end-to-end through the actual Next.js route (not just a raw SSH
   test): real 200 response, real VM output, zero errors in the server log.
 - Not built yet: browser automation, richer task types beyond a single shell

@@ -224,7 +224,7 @@ export default function SettingsPage() {
               <h2 className="text-xs uppercase tracking-widest text-text-dim">Security</h2>
               <NotConfigured setting="Cloud VM connection" phase="Phase 8" />
               <p className="text-xs text-text-faint">
-                See <code className="text-text-dim">docs/SECURITY.md</code> for the threat model
+                See <code className="text-text-dim">SECURITY.md</code> for the threat model
                 that will govern that phase before it starts.
               </p>
             </div>
@@ -305,7 +305,7 @@ function ToolsSection() {
         <p className="text-xs text-text-faint">
           Every local Mac tool call goes through this — no arbitrary shell, no
           filesystem-wide access, only the actions listed below. See{" "}
-          <code className="text-text-dim">docs/SECURITY.md</code>.
+          <code className="text-text-dim">SECURITY.md</code>.
         </p>
         <ul className="flex flex-col gap-2">
           {TOOL_REGISTRY.map((tool) => (

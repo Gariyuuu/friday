@@ -11,7 +11,7 @@ const logger = createLogger("NETWORK");
  * NewsAPI.org's free "developer" plan is keyless-registration but API-key gated, and
  * is restricted by NewsAPI's own terms to local/dev use (not a hosted production
  * service) — a reasonable fit for a personal assistant running on your own machine.
- * See .env.example NEWS_API_KEY and the checklist in docs/PROJECT_STATE.md.
+ * See .env.example NEWS_API_KEY and the checklist in PROJECT_STATE.md.
  */
 const CATEGORY_QUERIES: { newsApiCategory: string; category: IntelligenceCategory; pageSize: number }[] = [
   { newsApiCategory: "technology", category: "technology", pageSize: 5 },

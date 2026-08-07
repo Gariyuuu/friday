@@ -13,17 +13,29 @@ const logger = createLogger("VM");
 
 export interface VmTaskResult {
   ok: boolean;
-  stdout: string;
-  stderr: string;
-  exitCode: number | null;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number | null;
   error?: string;
+  title?: string;
+  url?: string;
+  textContent?: string;
 }
 
-interface VmTaskRequest {
+interface VmShellTaskRequest {
+  type?: "shell";
   command: string;
   timeoutSeconds?: number;
   allowNetwork?: boolean;
 }
+
+interface VmBrowseTaskRequest {
+  type: "browse";
+  url: string;
+  timeoutSeconds?: number;
+}
+
+type VmTaskRequest = VmShellTaskRequest | VmBrowseTaskRequest;
 
 /**
  * Runs one task on the FRIDAY VM's sandboxed Docker dispatch script over SSH.
@@ -35,12 +47,15 @@ interface VmTaskRequest {
  * function doesn't even attempt to pass one.
  */
 export async function runVmTask(request: VmTaskRequest): Promise<VmTaskResult> {
+  if (!VM_HOST) {
+    return { ok: false, error: "VM_HOST is not configured — the cloud VM is unavailable" };
+  }
+
   const timeoutSeconds = request.timeoutSeconds ?? VM_DEFAULT_TIMEOUT_SECONDS;
-  const stdinPayload = JSON.stringify({
-    command: request.command,
-    timeoutSeconds,
-    allowNetwork: request.allowNetwork ?? false,
-  });
+  const stdinPayload = JSON.stringify({ ...request, timeoutSeconds });
+  // Browse tasks spend real time launching a browser + rendering a page —
+  // give them extra room above the base SSH-connect backstop.
+  const backstopSeconds = request.type === "browse" ? 25 : 15;
 
   return new Promise((resolve) => {
     const child = execFile(
@@ -57,12 +72,15 @@ export async function runVmTask(request: VmTaskRequest): Promise<VmTaskResult> {
         `${VM_USER}@${VM_HOST}`,
       ],
       // Hard backstop above the VM-side timeout, covering SSH connect + Docker
-      // image pulls on a cold cache.
-      { timeout: (timeoutSeconds + VM_SSH_CONNECT_TIMEOUT_SECONDS + 15) * 1000, maxBuffer: 10 * 1024 * 1024 },
+      // image pulls / browser launch on a cold cache.
+      {
+        timeout: (timeoutSeconds + VM_SSH_CONNECT_TIMEOUT_SECONDS + backstopSeconds) * 1000,
+        maxBuffer: 10 * 1024 * 1024,
+      },
       (error, stdout, stderr) => {
         if (error) {
           logger.error("vm task failed", { error: String(error), stderr });
-          resolve({ ok: false, stdout: stdout ?? "", stderr: stderr ?? "", exitCode: null, error: String(error) });
+          resolve({ ok: false, stdout: stdout || undefined, stderr: stderr || undefined, error: String(error) });
           return;
         }
         try {

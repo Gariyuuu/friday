@@ -50,11 +50,11 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
   {
     name: "run_on_vm",
     description:
-      "Run a shell command in an isolated, network-off-by-default Docker container on the cloud VM (Phase 9)",
+      "Run a shell command or browse a URL with a real headless browser, both sandboxed in an isolated Docker container on the cloud VM (Phase 9)",
     executionLocation: "vm",
     riskLevel: "critical",
     requiresConfirmation: true,
-    timeoutMs: 60000,
+    timeoutMs: 90000,
   },
 ];
 

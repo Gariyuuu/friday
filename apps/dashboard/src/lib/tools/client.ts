@@ -36,12 +36,26 @@ export function showNotification(title: string, body: string) {
   );
 }
 
+interface VmToolResult {
+  ok: boolean;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number | null;
+  error?: string;
+  title?: string;
+  url?: string;
+  textContent?: string;
+}
+
 export function runOnVm(command: string, options?: { timeoutSeconds?: number; allowNetwork?: boolean }) {
   return runTool("run_on_vm", () =>
-    postJson<{ ok: boolean; stdout: string; stderr: string; exitCode: number | null; error?: string }>(
-      "/api/tools/run-on-vm",
-      { command, ...options },
-    ),
+    postJson<VmToolResult>("/api/tools/run-on-vm", { type: "shell", command, ...options }),
+  );
+}
+
+export function browseOnVm(url: string, options?: { timeoutSeconds?: number }) {
+  return runTool("run_on_vm", () =>
+    postJson<VmToolResult>("/api/tools/run-on-vm", { type: "browse", url, ...options }),
   );
 }
 

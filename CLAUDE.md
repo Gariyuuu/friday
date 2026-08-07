@@ -1,8 +1,9 @@
 # CLAUDE.md — F.R.I.D.A.Y.
 
 Personal Intelligence System. Read `docs/IMPLEMENTATION_PLAN.md` for the full spec
-and phasing, `docs/PROJECT_STATE.md` for what's actually done, `docs/ARCHITECTURE.md`
-for how it fits together, and `docs/SECURITY.md` for the threat model.
+and phasing, `PROJECT_STATE.md` for what's actually done, `ARCHITECTURE.md`
+for how it fits together, and `SECURITY.md` for the threat model. `HANDOFF.md`
+is the fastest "start here" for a cold pickup of this repo.
 
 ## What this is
 
@@ -31,7 +32,7 @@ apps/dashboard/         The whole product today (Next.js 16 App Router)
                             tracking), desktop/ (Tauri-only global shortcut +
                             autostart, no-op outside Tauri), vm/ (server-only:
                             SSH-based command channel to the Phase 9 cloud VM —
-                            see docs/ARCHITECTURE.md's "Data flow (VM task
+                            see ARCHITECTURE.md's "Data flow (VM task
                             execution)"), logger, demo
 packages/types/          Shared Zod schemas — the contract every backend conforms to
 packages/config/         Shared ESLint base for non-Next.js packages
@@ -42,7 +43,7 @@ docs/                    IMPLEMENTATION_PLAN, ARCHITECTURE, SECURITY, PROJECT_ST
 anything under `lib/intelligence/{index.ts,sources/*}` is `server-only` (real API
 keys live there) and must only be called from a route handler, never a component.
 Client code fetches `/api/intelligence/*` and `/api/tools/*` instead. Full detail in
-`docs/ARCHITECTURE.md`.
+`ARCHITECTURE.md`.
 
 `apps/dashboard` has its own `AGENTS.md`/`CLAUDE.md` warning that this Next.js version
 (16) has real breaking changes from training-data knowledge — heed it, check
@@ -90,7 +91,7 @@ Fix errors before moving on — don't leave a phase half-verified.
 - Never commit secrets. `.env`/`.env.local` are gitignored; `.env.example` only.
 - Never expose a server-only credential to the browser bundle (no `NEXT_PUBLIC_`
   prefix on anything secret).
-- Never weaken the Mac/VM isolation described in `docs/SECURITY.md` — the VM must
+- Never weaken the Mac/VM isolation described in `SECURITY.md` — the VM must
   never receive Mac SSH credentials, admin password, Keychain access, or unrestricted
   filesystem access.
 - Never expose arbitrary shell execution on the Mac. Local tools (`lib/tools/`,
@@ -130,8 +131,8 @@ Fix errors before moving on — don't leave a phase half-verified.
   possibly-in-use MacBook desktop (confirmed this session — it's not an isolated
   sandbox). Clean up test processes afterward rather than leave stray windows.
 - Never silently replace an architectural decision (state management, provider
-  pattern, monorepo layout) without updating `docs/ARCHITECTURE.md` and
-  `docs/PROJECT_STATE.md` to say why.
+  pattern, monorepo layout) without updating `ARCHITECTURE.md` and
+  `PROJECT_STATE.md` to say why.
 - Never assume a fast-moving third-party API (OpenAI Realtime is the current
   example) still matches training-data knowledge — it has already renamed an
   endpoint once. Check current docs (WebFetch) before changing `lib/voice/config.ts`
@@ -157,6 +158,6 @@ icon, a real system-wide global shortcut (⌥+V — found and fixed a real Tauri
 capability-permission bug), auto-launch at login, and a launchable
 `~/Applications/FRIDAY.app` wrapper. Multiple real bugs across sessions were
 found and fixed by actually testing against real APIs/real launches/a real VM,
-not caught by review alone — see `docs/PROJECT_STATE.md` for the full breakdown.
+not caught by review alone — see `PROJECT_STATE.md` for the full breakdown.
 `desktop:build` (distributable signed bundle) still not attempted — needs a
 bundled Node server sidecar, a separate problem from `desktop:dev`.

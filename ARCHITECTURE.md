@@ -101,7 +101,7 @@ exception — they're safe for either side because they hold no secrets and do n
 
 This split didn't exist in the very first build (Phase 1 called the provider directly
 from a client hook) because Phase 1 had no secrets to leak. It became a real
-requirement the moment Phase 3 added `NEWS_API_KEY` — see `docs/PROJECT_STATE.md`'s
+requirement the moment Phase 3 added `NEWS_API_KEY` — see `PROJECT_STATE.md`'s
 Known Issues for the full story.
 
 ### State machine
@@ -188,26 +188,55 @@ over a made-up placeholder location.
 
 ### Data flow (VM task execution — Phase 9)
 
-Command palette or voice's `run_on_vm` tool → `lib/tools/client.ts`'s `runOnVm()`
+Command palette or voice's `run_on_vm`/`browse_on_vm` tools → `lib/tools/
+client.ts`'s `runOnVm()`/`browseOnVm()` (both go through the *same* `run_on_vm`
+registry entry and risk profile — it's one execution surface, two task shapes)
 → `runTool()` (same permission/approval/audit-log path as every other tool —
 critical-risk tools additionally skip the "Always Allow" option, see
-`docs/SECURITY.md`) → `POST /api/tools/run-on-vm` → Zod validation →
-`lib/vm/vm-client.ts` → `execFile`'s the system `ssh` binary (fixed argument
-array, JSON task piped via stdin, never a shell string) → the VM's
-`authorized_keys` forces the connection to run `/opt/friday-agent/dispatch.sh`
-regardless of what command SSH was asked for → that script runs the task inside
-an ephemeral, network-isolated-by-default, resource-limited Docker container →
-one JSON result flows back over the same SSH connection → parsed and returned
-to the caller. No public port opened on the VM for this at all — the firewall
-stays exactly as locked down as Phase 8 left it (SSH only). See
-`docs/PROJECT_STATE.md`'s Phase 9 section for why SSH was chosen over a public
-HTTPS gateway.
+`SECURITY.md`) → `POST /api/tools/run-on-vm` → Zod discriminated-union
+validation on `type: "shell" | "browse"` → `lib/vm/vm-client.ts` → `execFile`'s
+the system `ssh` binary (fixed argument array, JSON task piped via stdin, never
+a shell string) → the VM's `authorized_keys` forces the connection to run
+`/opt/friday-agent/dispatch.sh` regardless of what command SSH was asked for →
+that script branches on `type`: a shell task runs inside an ephemeral,
+network-isolated-by-default, resource-limited Docker container; a browse task
+runs inside `friday-browser:latest` (a custom image layering the `playwright`
+npm package onto Microsoft's official Playwright base image, built once on the
+VM) with networking enabled and real headless-Chromium rendering → one JSON
+result flows back over the same SSH connection → parsed and returned to the
+caller. No public port opened on the VM for either task type — the firewall
+stays exactly as locked down as Phase 8 left it (SSH only); browse tasks reach
+the internet via the container's own NAT'd egress, not a new host-level port.
+A separate `DOCKER-USER` iptables layer (see `SECURITY.md`) blocks container
+egress to the cloud metadata service and this droplet's private VPC ranges
+regardless of which task type or network mode is used. See `PROJECT_STATE.md`'s
+Phase 9 section for why SSH was chosen over a public HTTPS gateway.
+
+### Data flow (VM browse task — Phase 9, uncommitted)
+
+The Mac-side half of a second VM task type exists in the working tree but is
+**uncommitted and not confirmed working end-to-end** (see `PROJECT_STATE.md`'s
+"Uncommitted work" section). As built: voice's `browse_on_vm` or a future
+Quick Action → `lib/tools/client.ts`'s `browseOnVm()` → same `runTool()` path
+as `runOnVm()` → `POST /api/tools/run-on-vm` with `{type: "browse", url}` →
+Zod validates it's a well-formed `http`/`https` URL (no private/link-local IP
+filtering at this layer — see `SECURITY.md`'s findings) → `vm-client.ts` sends
+the same JSON-over-SSH-stdin shape, just with `type: "browse"` instead of
+`type: "shell"` → the VM's `dispatch.sh` would need to branch on `type` to
+launch a headless browser instead of a shell container. Whether `dispatch.sh`
+actually has that branch was **not verified this session** (it isn't tracked
+in this repo; no SSH connection was opened to check). `PROJECT_STATE.md` and
+`SECURITY.md` both contain detailed claims about a Playwright-based image and
+an SSRF fix for this path, found already written in the working tree at the
+start of this documentation pass rather than authored by it — see the
+editorial notes in those files before treating those claims as confirmed.
 
 ## Where things go next (see `docs/IMPLEMENTATION_PLAN.md` for full phasing)
 
-- **Phase 9 breadth**: browser automation (headless Chromium in a container) and
-  richer task types beyond a single sandboxed shell command — the channel and
-  permission model exist now, this is about what gets sent over it.
+- **Phase 9 breadth**: confirm the uncommitted `browse_on_vm` Mac-side change
+  above actually has a working VM-side counterpart, then commit it; richer
+  task types beyond single-shot shell/browse — the channel and permission
+  model exist now, this is about what gets sent over it.
 - **Phase 11 finishing touch**: `desktop:build` (distributable bundle) needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev` —
   not attempted, only relevant once/if sharing the app with someone else matters.

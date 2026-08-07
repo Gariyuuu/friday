@@ -13,7 +13,7 @@ const logger = createLogger("VOICE");
 /**
  * Mints a short-lived ephemeral token so the browser can open a WebRTC session
  * directly with OpenAI without ever seeing OPENAI_API_KEY. This is the one place
- * that key is read for voice — see docs/ARCHITECTURE.md's client/server boundary.
+ * that key is read for voice — see ARCHITECTURE.md's client/server boundary.
  */
 export async function POST() {
   const apiKey = process.env.OPENAI_API_KEY;
