@@ -1,0 +1,13 @@
+{
+  "name": "@friday/config",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./eslint-base": "./eslint-base.js",
+    "./tsconfig.base.json": "../../tsconfig.base.json"
+  },
+  "devDependencies": {
+    "typescript-eslint": "^8.19.0"
+  }
+}
