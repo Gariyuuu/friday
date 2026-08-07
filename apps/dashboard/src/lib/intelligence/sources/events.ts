@@ -2,6 +2,7 @@ import "server-only";
 import type { IntelligenceCategory, IntelligenceEvent } from "@friday/types";
 import { createLogger } from "@/lib/logger";
 import type { IntelligenceSnapshot } from "../provider";
+import { getCachedLocation, scheduleGeocode } from "./geocode";
 import { MOCK_EVENTS } from "./mock-data";
 
 const logger = createLogger("NETWORK");
@@ -45,17 +46,26 @@ async function fetchCategory(
 
   return body.articles
     .filter((a) => a.title && a.url)
-    .map((article, index) => ({
-      id: article.url,
-      title: article.title,
-      summary: article.description ?? "",
-      category,
-      importance: Math.max(0.3, 0.9 - index * 0.1),
-      timestamp: article.publishedAt,
-      sources: [{ name: article.source.name, url: article.url }],
-      // No geocoding provider configured yet — real headlines render in the news
-      // panel but won't get a globe marker until Phase 3 adds one (spec §16).
-    }));
+    .map((article, index) => {
+      const summary = article.description ?? "";
+      const location = getCachedLocation(article.url);
+      if (!location) scheduleGeocode(article.url, article.title, summary);
+
+      return {
+        id: article.url,
+        title: article.title,
+        summary,
+        category,
+        importance: Math.max(0.3, 0.9 - index * 0.1),
+        timestamp: article.publishedAt,
+        sources: [{ name: article.source.name, url: article.url }],
+        // Geocoded in the background (lib/intelligence/sources/geocode.ts) — an LLM
+        // extracts a place name, then Nominatim resolves it. Too slow to do inline
+        // on a request the user is waiting on, so a marker appears on a later poll
+        // once resolved, never blocking or fabricating a location in the meantime.
+        ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+      };
+    });
 }
 
 export async function getLiveEvents(): Promise<IntelligenceSnapshot<IntelligenceEvent[]>> {

@@ -142,8 +142,28 @@ Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
   errors. Full success-path verification (actual Tavily/YouTube results) needs the
   user to add `SEARCH_API_KEY`/`YOUTUBE_API_KEY` — flagged in `.env.example`, not
   blocking anything else.
-- Geocoding for live news events (so they get real globe markers instead of
-  approximate/mock coordinates) remains open — lower priority, not started.
+- **Geocoding, added same day (session 4, part 4)**: `lib/intelligence/sources/geocode.ts`
+  extracts a place name from each real headline via OpenAI's Responses API
+  (`gpt-5-nano`, cheapest current text model — verified live pricing 2026-08-07)
+  and resolves it to coordinates via Nominatim (OpenStreetMap, no key needed, rate-
+  limited to ~1 req/sec per their usage policy, `User-Agent` set as required).
+  **Real bug found via live testing**: `gpt-5-nano` is a reasoning model — with a
+  naive small `max_output_tokens` (20), it burned the entire budget on reasoning
+  tokens and returned `status: "incomplete"` with zero actual text. Fixed with
+  `reasoning: { effort: "minimal" }` + `max_output_tokens: 100`, confirmed
+  completing reliably. Runs as background, fire-and-forget work (never blocks a
+  request) — an event without a cached location schedules geocoding and appears
+  without a marker on this poll, with a marker on a later one once resolved.
+  Never fabricates a location: if the model can't identify one (replies `NONE`,
+  the documented behavior for stories without a clear place — e.g. product
+  launches, layoffs, market-wide moves), the event simply has no marker, exactly
+  as before this feature existed. **Verified end-to-end against the real,
+  already-configured `OPENAI_API_KEY`/`NEWS_API_KEY`**: of 13 real live headlines,
+  5 correctly resolved to real coordinates (a South Korea market story → Seoul-area
+  coords, a US FDA flu-shot story → US-center coords, a solar-observation story →
+  Hawaii, matching the Inouye Solar Telescope's real location) and 8 correctly
+  got no marker (product launches, layoffs, market moves with no single place tied
+  to them) — zero errors in the dev log across the whole run.
 
 **Phase 2/5 — `focus_event` tool**
 
@@ -276,8 +296,6 @@ video results once those API keys are added).
 - `pnpm desktop:build` (distributable, optionally signed `.app`/`.dmg`) — needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev`. Only
   relevant if/when sharing the app with someone else matters.
-- Geocoding for live news events so they get accurate globe markers — still open,
-  lower priority, not started.
 
 ## Known issues
 

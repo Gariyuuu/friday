@@ -58,7 +58,8 @@ apps/dashboard/src/
       index.ts                  server-only: AutoIntelligenceProvider, picks live vs mock per feed
       sources/                  server-only: weather.ts (NWS), markets.ts (CoinGecko+Twelve Data),
                                   events.ts (NewsAPI), search.ts (Tavily), video.ts (YouTube),
-                                  mock-data.ts (shared demo data)
+                                  geocode.ts (background place-name extraction + Nominatim
+                                  lookup for real headlines), mock-data.ts (shared demo data)
       use-intelligence-data.ts  client hook — fetches /api/intelligence/*, never imports a provider
     tools/
       registry.ts                Tool definitions + app allowlist + default permissions
@@ -170,15 +171,27 @@ reflects `gesture-store`'s transient `cameraActive` flag whenever the webcam is
 actually in use. Off by default; nothing touches the camera until the user opts in
 from Settings → Input.
 
+### Data flow (geocoding real news events)
+
+`fetchCategory` (events.ts) checks `geocode.ts`'s in-memory cache (keyed by article
+URL) for each real headline. A cache hit attaches `latitude`/`longitude` to the
+event immediately; a miss returns the event without coordinates *and* schedules
+background work — never blocks the request. That background work runs through a
+single serialized queue: an OpenAI Responses API call (`gpt-5-nano`, minimal
+reasoning effort) extracts a place name or decides there isn't one, then a
+rate-limited Nominatim lookup (max ~1 req/sec, per their usage policy) resolves it
+to coordinates. The result — including a deliberate `null` for "no place found" —
+is cached so the same article is never re-processed. A globe marker for a fresh
+headline typically appears a poll or two after the headline itself does, not
+instantly; this is a deliberate tradeoff (never make the user wait on an LLM call)
+over a made-up placeholder location.
+
 ## Where things go next (see `docs/IMPLEMENTATION_PLAN.md` for full phasing)
 
 - **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started; the
   user was asked directly this session and said "not yet." Needs a paid VM
   provider chosen and a reviewed threat model before any code, per spec §24-27 and
   `docs/SECURITY.md`, whenever it does happen.
-- **Phase 3 finishing touch**: geocoding for live news events so real headlines get
-  an accurate globe marker (currently approximate/mock coordinates) — lower
-  priority, not started.
 - **Phase 11 finishing touch**: `desktop:build` (distributable bundle) needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev` —
   not attempted, only relevant once/if sharing the app with someone else matters.

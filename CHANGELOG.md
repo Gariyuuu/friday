@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.0 — Geocoded News Events
+
+- Real headlines now get real globe markers. `lib/intelligence/sources/geocode.ts`
+  extracts a place name per headline via OpenAI's Responses API (`gpt-5-nano`, the
+  cheapest current text model, verified live pricing) and resolves it to
+  coordinates via Nominatim (OpenStreetMap, no key needed). Runs as background,
+  fire-and-forget work so it never blocks a request — a marker appears on a later
+  poll once resolved, and a headline with no clear single place (product launches,
+  layoffs, broad market moves) correctly gets no marker at all rather than a
+  fabricated one.
+- **Real bug found via live testing**: `gpt-5-nano` is a reasoning model — a naive
+  small `max_output_tokens` budget got entirely consumed by reasoning tokens,
+  returning zero actual text. Fixed with `reasoning: { effort: "minimal" }` +
+  a larger token budget, confirmed reliable.
+- **Verified against the real, already-configured API keys**: of 13 real live
+  headlines, 5 correctly resolved to sensible real coordinates (a South Korea
+  market story → Seoul-area coordinates, a US FDA story → US-center coordinates, a
+  solar-observation story → Hawaii, matching the real telescope's location) and 8
+  correctly got no marker — zero errors.
+
 ## 0.7.0 — Gestures, Menu Bar App, Web/Video Search
 
 - **Phase 10 (gestures)**: opt-in webcam hand-tracking (`@mediapipe/tasks-vision`)
