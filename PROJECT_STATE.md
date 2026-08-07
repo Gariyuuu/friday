@@ -1,11 +1,29 @@
 # Project State
 
-Last updated: 2026-08-07, session 4. Phase 9 now has two real, live-verified
-VM task types (`shell` and `browse`), a real SSRF fix, and app-layer
-defense-in-depth on top of it (a second SSRF guard, a prompt-injection
-content wrapper, the VM host moved out of committed source).
+Last updated: 2026-08-07, session 4. Phase 9 now has two real VM task types
+(`shell` and `browse`), an app-layer SSRF guard, a prompt-injection content
+wrapper, and the VM host moved out of committed source.
 
-Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
+**A note on verification provenance, since two sessions worked this repo
+concurrently.** This documentation session independently verified, by
+reading the actual code, everything about the `shell` task type's Mac-side
+path and the `browse` task type's Mac-side path, including two real
+application-layer security mitigations (`lib/vm/ssrf-guard.ts` and the
+untrusted-content delimiter in `friday-tools.ts`) added in commit `1769221`.
+The claims about the VM's own infrastructure (a Playwright Docker image,
+`dispatch.sh` branching on task type, a `DOCKER-USER` iptables SSRF fix, a
+systemd hardening unit) were not independently checked by this documentation
+session — no SSH connection to the droplet was opened here. Commit
+`94cc6c6` ("Reconcile documentation after a concurrent-session sync issue"),
+authored under this repo's own git identity, states that those VM-side
+claims were re-verified live against the actual droplet a second time by
+that session. This documentation defers to that on the reasonable assumption
+it's the project owner's own work, while still noting — for anyone reading
+this later — that this specific pass didn't do that check itself. If in
+doubt, the check is cheap: SSH to the droplet and look.
+
+Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date, per the
+reconciliation commit above — not independently re-checked by this pass).
 
 ## Phase 9 — VM gateway/agent software (both task types live and verified)
 
