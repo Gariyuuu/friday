@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.14.0 — Multi-Step Browser Interaction on the VM
+
+- `browse_on_vm` now accepts an optional `steps` array (up to 10):
+  `click`/`type`/`wait`/`screenshot` against CSS selectors, run in order
+  after the page loads. Each step reports its own success/failure; one
+  failing step doesn't abort the rest. Screenshots come back as base64 PNGs
+  (~800KB cap each, up to 3 per task).
+- Rebuilt the VM's `friday-browser:latest` image with the updated script.
+- **Verified with real interaction, not just a page load**: clicked
+  Wikipedia's actual search box, typed real text into it, and confirmed via
+  a decoded, visually-inspected screenshot that it landed correctly and
+  triggered Wikipedia's genuine live autocomplete. Confirmed screenshot
+  bytes are valid PNG data. Re-verified through the real Next.js route with
+  no regression on existing single-shot `browse`/`shell` tasks.
+- Voice's `browse_on_vm` tool gained a `steps` parameter (a JSON array
+  passed as a string). The Quick Actions UI prompt stays URL-only for
+  now — a full step-builder is separate, larger scope.
+
 ## 0.13.0 — VM Tools in the Command Palette (Quick Actions, not just voice)
 
 - `⌘K` → "Run Command on Cloud VM…" / "Browse URL on Cloud VM…" — the same

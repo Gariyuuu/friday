@@ -36,6 +36,13 @@ export function showNotification(title: string, body: string) {
   );
 }
 
+export interface VmBrowseStep {
+  action: "click" | "type" | "wait" | "screenshot";
+  selector?: string;
+  text?: string;
+  timeoutMs?: number;
+}
+
 interface VmToolResult {
   ok: boolean;
   stdout?: string;
@@ -45,6 +52,8 @@ interface VmToolResult {
   title?: string;
   url?: string;
   textContent?: string;
+  steps?: { action: string; selector?: string | null; ok: boolean; error?: string }[];
+  screenshots?: string[];
 }
 
 export function runOnVm(command: string, options?: { timeoutSeconds?: number; allowNetwork?: boolean }) {
@@ -53,7 +62,10 @@ export function runOnVm(command: string, options?: { timeoutSeconds?: number; al
   );
 }
 
-export function browseOnVm(url: string, options?: { timeoutSeconds?: number }) {
+export function browseOnVm(
+  url: string,
+  options?: { timeoutSeconds?: number; steps?: VmBrowseStep[] },
+) {
   return runTool("run_on_vm", () =>
     postJson<VmToolResult>("/api/tools/run-on-vm", { type: "browse", url, ...options }),
   );

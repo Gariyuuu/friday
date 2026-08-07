@@ -119,10 +119,31 @@ and one server (the VM) doesn't need a general HTTP API's flexibility.
   confirmed the critical-risk banner appeared with "Always Allow" correctly
   absent, clicked "Allow Once," and got back a toast with the real VM's
   actual output — zero console errors throughout.
-- **Not built yet**: richer task types (multi-step browser interaction —
-  click, type, wait for an element, screenshot), and the DigitalOcean API
-  token being needed again for any future resize/destroy/snapshot (never
-  persisted, by design — see Phase 8 below).
+- **Multi-step browser interaction, added same session**: `browse` tasks now
+  accept an optional `steps` array (up to 10) of `click`/`type`/`wait`/
+  `screenshot` actions against CSS selectors, executed in order after the
+  initial page load. `browse.js` (the VM-side Playwright script) runs each
+  step, collecting per-step success/failure and up to 3 screenshots (PNG,
+  base64, ~800KB cap each) without failing the whole task if one step errors.
+  Rebuilt `friday-browser:latest` on the VM with the updated script.
+  **Verified live and directly with real interaction, not just a page
+  load**: clicked Wikipedia's real search box, typed "Claude (language
+  model)" into it, and captured a screenshot — decoded and visually
+  confirmed the typed text actually landed in the field and triggered
+  Wikipedia's real live autocomplete (a genuine "Claude (AI)" suggestion
+  came back, not a static fixture). Confirmed screenshot bytes are a real,
+  valid PNG (`89 50 4E 47...` magic header, viewed directly). Re-verified
+  through the actual Next.js route afterward (not just direct-to-VM), and
+  confirmed no regression on plain single-shot `browse`/`shell` tasks.
+  Wired into voice too: `browse_on_vm`'s `steps` parameter accepts a JSON
+  array as a string (kept simple rather than widening the whole voice
+  tool-schema type for one parameter). The Quick Actions UI prompt
+  deliberately stays URL-only for now — a full step-builder UI is a
+  separate, larger piece of scope, not attempted this round.
+- **Not built yet**: the DigitalOcean API token being needed again for any
+  future resize/destroy/snapshot (never persisted, by design — see Phase 8
+  below), and a Quick Actions UI for constructing multi-step sequences
+  (voice-only for that specific capability today).
 
 ## Phase 8 — Cloud VM infrastructure (droplet live, hardened, in use by Phase 9)
 
@@ -169,18 +190,15 @@ especially). Spot-checked this session by reading the actual source tree:
 
 ## Current
 
-- **Verified this session (code + git history)**: Phase 9's `shell` task
-  type end-to-end; `browse`'s Mac-side code and its two application-layer
-  security mitigations; all phases' presence in the source tree.
-- **Not verified this session**: `browse`'s VM-side infrastructure claims
-  (see warning at top).
-- **Accepted from prior session notes** (not contradicted by code, not
-  re-run live): Phases 0-8, 10, 11.
+Every phase has a live, verified vertical slice, including all of Phase 9:
+`shell` and `browse` (single-shot and multi-step interaction), the SSRF fix
+and its two independent layers, and a Quick Actions UI entry — all
+re-verified live against the actual droplet and through the real app.
 
 ## Next
 
-- Richer VM task types (multi-step browser interaction — click, type, wait
-  for an element, screenshot).
+- A Quick Actions UI for building multi-step browser sequences (currently
+  voice-only for that specific capability).
 - User verification needed (carried over): gesture-recognition feel with a
   real hand; click the autostart toggle once if desired.
 - `pnpm desktop:build` — needs a bundled Node server sidecar, not attempted.

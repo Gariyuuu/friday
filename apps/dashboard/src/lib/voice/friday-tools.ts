@@ -7,6 +7,7 @@ import {
   runOnVm,
   setVolume,
   showNotification,
+  type VmBrowseStep,
 } from "@/lib/tools/client";
 import { useMemoryStore } from "@/stores/memory-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -159,10 +160,10 @@ export function getFridayToolDefinitions(): FridayToolSchema[] {
       type: "function",
       name: "browse_on_vm",
       description:
-        "Load a URL with a real headless browser (renders JavaScript, unlike search_web) running in a sandboxed container on FRIDAY's cloud VM, and return its title and text content. Requires explicit user approval every time (critical risk). Use when a page's content needs actual rendering, not just a search snippet.",
+        'Load a URL with a real headless browser (renders JavaScript, unlike search_web) running in a sandboxed container on FRIDAY\'s cloud VM, and return its title and text content. Requires explicit user approval every time (critical risk). Use when a page\'s content needs actual rendering, not just a search snippet. Optionally interact with the page first via "steps": a JSON array (as a string) of up to 10 steps, each {"action": "click"|"type"|"wait"|"screenshot", "selector"?: CSS selector, "text"?: string to type, "timeoutMs"?: number}. Omit steps to just load the page and read it.',
       parameters: {
         type: "object",
-        properties: { url: { type: "string" } },
+        properties: { url: { type: "string" }, steps: { type: "string" } },
         required: ["url"],
       },
     },
@@ -255,7 +256,15 @@ export async function executeFridayTool(name: string, argsJson: string): Promise
     case "run_on_vm":
       return runOnVm(args.command as string);
     case "browse_on_vm": {
-      const result = await browseOnVm(args.url as string);
+      let steps;
+      if (typeof args.steps === "string" && args.steps.trim()) {
+        try {
+          steps = JSON.parse(args.steps) as VmBrowseStep[];
+        } catch {
+          return { ok: false, error: "steps must be valid JSON" };
+        }
+      }
+      const result = await browseOnVm(args.url as string, steps ? { steps } : undefined);
       // Prompt-injection defense-in-depth: wrap the page's own text so the
       // model sees an explicit boundary marking it as untrusted data, not a
       // new set of instructions. Enforcement still ultimately relies on the
