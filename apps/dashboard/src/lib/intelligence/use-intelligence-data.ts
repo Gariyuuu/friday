@@ -3,7 +3,7 @@
 import type { DataFreshness, IntelligenceEvent, MarketQuote, WeatherAlert } from "@friday/types";
 import { useEffect, useState } from "react";
 import { createLogger } from "@/lib/logger";
-import { getIntelligenceProvider } from "./index";
+import type { IntelligenceSnapshot } from "./provider";
 
 const logger = createLogger("NETWORK");
 
@@ -18,7 +18,17 @@ interface IntelligenceData {
 
 const LOADING: DataFreshness = { status: "loading", isMock: true };
 
-/** Fetches all three intelligence feeds in parallel and streams results in as each resolves. */
+async function fetchSnapshot<T>(url: string): Promise<IntelligenceSnapshot<T>> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} responded ${res.status}`);
+  return (await res.json()) as IntelligenceSnapshot<T>;
+}
+
+/**
+ * Fetches all three intelligence feeds from server-side routes (never calls a
+ * provider directly — that's where API keys live) in parallel and streams results
+ * in as each resolves.
+ */
 export function useIntelligenceData() {
   const [data, setData] = useState<IntelligenceData>({
     events: [],
@@ -31,10 +41,8 @@ export function useIntelligenceData() {
 
   useEffect(() => {
     let cancelled = false;
-    const provider = getIntelligenceProvider();
 
-    provider
-      .getEvents()
+    fetchSnapshot<IntelligenceEvent[]>("/api/intelligence/events")
       .then((snapshot) => {
         if (cancelled) return;
         setData((prev) => ({
@@ -53,8 +61,7 @@ export function useIntelligenceData() {
         }
       });
 
-    provider
-      .getMarkets()
+    fetchSnapshot<MarketQuote[]>("/api/intelligence/markets")
       .then((snapshot) => {
         if (cancelled) return;
         setData((prev) => ({
@@ -73,8 +80,7 @@ export function useIntelligenceData() {
         }
       });
 
-    provider
-      .getWeatherAlerts()
+    fetchSnapshot<WeatherAlert[]>("/api/intelligence/weather")
       .then((snapshot) => {
         if (cancelled) return;
         setData((prev) => ({

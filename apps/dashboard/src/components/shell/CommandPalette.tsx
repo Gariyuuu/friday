@@ -4,7 +4,21 @@ import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { runGlobalBriefDemo } from "@/lib/demo";
+import { getSystemStatus, openApplication, openUrl, showNotification } from "@/lib/tools/client";
+import { useToastStore } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
+
+function useToolAction() {
+  const showToast = useToastStore((s) => s.show);
+  return function runAction(label: string, action: () => Promise<unknown>) {
+    action()
+      .then(() => showToast(`${label} — done`, "success"))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        showToast(`${label} — ${message}`, "error");
+      });
+  };
+}
 
 /** ⌘K / Ctrl+K command palette — spec §35. */
 export function CommandPalette() {
@@ -12,6 +26,8 @@ export function CommandPalette() {
   const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const setMode = useUiStore((s) => s.setMode);
   const router = useRouter();
+  const runAction = useToolAction();
+  const showToast = useToastStore((s) => s.show);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -67,6 +83,74 @@ export function CommandPalette() {
             className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
           >
             Settings
+          </Command.Item>
+        </Command.Group>
+
+        <Command.Group
+          heading="Quick Actions"
+          className="px-2 pb-1 pt-3 text-[10px] uppercase tracking-widest text-text-faint"
+        >
+          <Command.Item
+            onSelect={() =>
+              run(() => runAction("Open Visual Studio Code", () => openApplication("Visual Studio Code")))
+            }
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Open Visual Studio Code
+          </Command.Item>
+          <Command.Item
+            onSelect={() => run(() => runAction("Open Safari", () => openApplication("Safari")))}
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Open Safari
+          </Command.Item>
+          <Command.Item
+            onSelect={() =>
+              run(() =>
+                runAction("Open github.com/Gariyuuu/friday", () =>
+                  openUrl("https://github.com/Gariyuuu/friday"),
+                ),
+              )
+            }
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Open FRIDAY on GitHub
+          </Command.Item>
+          <Command.Item
+            onSelect={() =>
+              run(() =>
+                runAction("Notification sent", () =>
+                  showNotification("F.R.I.D.A.Y.", "This is a test notification."),
+                ),
+              )
+            }
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Send Test Notification
+          </Command.Item>
+          <Command.Item
+            onSelect={() =>
+              run(() => {
+                getSystemStatus()
+                  .then((status) => {
+                    const battery =
+                      status.battery.percent !== null
+                        ? `${status.battery.percent}% battery${status.battery.charging ? " (charging)" : ""}`
+                        : "battery unknown";
+                    showToast(
+                      `CPU load ${status.cpuLoadAvg1m.toFixed(2)} · Memory ${status.memoryUsedPercent}% · ${battery}`,
+                      "success",
+                    );
+                  })
+                  .catch((error: unknown) => {
+                    const message = error instanceof Error ? error.message : String(error);
+                    showToast(`System status — ${message}`, "error");
+                  });
+              })
+            }
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            System Status
           </Command.Item>
         </Command.Group>
 

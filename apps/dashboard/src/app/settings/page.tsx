@@ -1,8 +1,47 @@
 "use client";
 
+import type { ToolPermissionMode } from "@friday/types";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { TOOL_REGISTRY } from "@/lib/tools/registry";
+import { useToolStore } from "@/stores/tool-store";
 import { useUiStore, type GraphicsQuality } from "@/stores/ui-store";
+
+interface ConfigStatus {
+  ai: { openai: boolean; anthropic: boolean; gemini: boolean };
+  intelligence: {
+    news: boolean;
+    equities: boolean;
+    crypto: boolean;
+    weather: boolean;
+    video: boolean;
+    search: boolean;
+  };
+  voice: boolean;
+  memory: boolean;
+  vm: boolean;
+}
+
+function useConfigStatus() {
+  const [status, setStatus] = useState<ConfigStatus | null>(null);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((body: ConfigStatus) => setStatus(body))
+      .catch(() => setStatus(null));
+  }, []);
+  return status;
+}
+
+function StatusTag({ ok, onLabel = "Connected" }: { ok: boolean; onLabel?: string }) {
+  return (
+    <span
+      className={`text-mono-status text-xs ${ok ? "text-success" : "text-text-faint"}`}
+    >
+      {ok ? onLabel : "Not configured"}
+    </span>
+  );
+}
 
 type SectionId =
   | "general"
@@ -46,6 +85,7 @@ export default function SettingsPage() {
   const [section, setSection] = useState<SectionId>("general");
   const graphicsQuality = useUiStore((s) => s.graphicsQuality);
   const setGraphicsQuality = useUiStore((s) => s.setGraphicsQuality);
+  const config = useConfigStatus();
 
   return (
     <div className="flex h-dvh flex-col">
@@ -98,18 +138,23 @@ export default function SettingsPage() {
             <div className="max-w-md space-y-4">
               <h2 className="text-xs uppercase tracking-widest text-text-dim">AI Providers</h2>
               <ul className="flex flex-col gap-2 text-sm">
-                {["OpenAI", "Anthropic", "Gemini"].map((provider) => (
-                  <li key={provider} className="flex items-center justify-between">
-                    <span className="text-text-dim">{provider}</span>
-                    <span className="text-mono-status text-xs text-text-faint">
-                      Not configured
-                    </span>
-                  </li>
-                ))}
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">OpenAI</span>
+                  <StatusTag ok={config?.ai.openai ?? false} />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Anthropic</span>
+                  <StatusTag ok={config?.ai.anthropic ?? false} />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Gemini</span>
+                  <StatusTag ok={config?.ai.gemini ?? false} />
+                </li>
               </ul>
               <p className="text-xs text-text-faint">
                 Configured via server-side environment variables — never entered directly in
-                this UI. See <code className="text-text-dim">.env.example</code>.
+                this UI. See <code className="text-text-dim">.env.example</code>. No orchestration
+                uses these yet (Phase 5) — this just reports whether a key is present.
               </p>
             </div>
           )}
@@ -118,14 +163,36 @@ export default function SettingsPage() {
             <div className="max-w-md space-y-4">
               <h2 className="text-xs uppercase tracking-widest text-text-dim">Intelligence</h2>
               <ul className="flex flex-col gap-2 text-sm">
-                {["News", "Markets", "Weather", "Video search"].map((feed) => (
-                  <li key={feed} className="flex items-center justify-between">
-                    <span className="text-text-dim">{feed}</span>
-                    <span className="text-mono-status text-xs text-warning">Demo data</span>
-                  </li>
-                ))}
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">News</span>
+                  <StatusTag ok={config?.intelligence.news ?? false} onLabel="Live (NewsAPI)" />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Markets — crypto</span>
+                  <StatusTag ok={config?.intelligence.crypto ?? false} onLabel="Live (CoinGecko)" />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Markets — equities/FX</span>
+                  <StatusTag ok={config?.intelligence.equities ?? false} onLabel="Live (Twelve Data)" />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Weather alerts</span>
+                  <StatusTag ok={config?.intelligence.weather ?? false} onLabel="Live (NWS, US only)" />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Video search</span>
+                  <StatusTag ok={config?.intelligence.video ?? false} />
+                </li>
+                <li className="flex items-center justify-between">
+                  <span className="text-text-dim">Web search</span>
+                  <StatusTag ok={config?.intelligence.search ?? false} />
+                </li>
               </ul>
-              <NotConfigured setting="Live provider connections" phase="Phase 3" />
+              <p className="text-xs text-text-faint">
+                Crypto and weather need no key and are live by default. News and
+                equities/FX show demo data until their key is set — see{" "}
+                <code className="text-text-dim">.env.example</code>.
+              </p>
             </div>
           )}
 
@@ -136,12 +203,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {section === "tools" && (
-            <div className="max-w-md space-y-4">
-              <h2 className="text-xs uppercase tracking-widest text-text-dim">Tool Permissions</h2>
-              <NotConfigured setting="Local Mac tools and the permission engine" phase="Phase 6" />
-            </div>
-          )}
+          {section === "tools" && <ToolsSection />}
 
           {section === "security" && (
             <div className="max-w-md space-y-4">
@@ -198,12 +260,92 @@ export default function SettingsPage() {
                 </li>
                 <li className="flex items-center justify-between">
                   <span className="text-text-dim">Intelligence data</span>
-                  <span className="text-mono-status text-xs text-warning">Demo data</span>
+                  <span className="text-mono-status text-xs text-success">
+                    Live (crypto + US weather; news/equities need keys)
+                  </span>
                 </li>
               </ul>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const PERMISSION_OPTIONS: ToolPermissionMode[] = ["disabled", "ask", "allow"];
+
+function ToolsSection() {
+  const permissions = useToolStore((s) => s.permissions);
+  const setPermission = useToolStore((s) => s.setPermission);
+  const runHistory = useToolStore((s) => s.runHistory);
+
+  return (
+    <div className="max-w-lg space-y-6">
+      <div className="space-y-3">
+        <h2 className="text-xs uppercase tracking-widest text-text-dim">Tool Permissions</h2>
+        <p className="text-xs text-text-faint">
+          Every local Mac tool call goes through this — no arbitrary shell, no
+          filesystem-wide access, only the actions listed below. See{" "}
+          <code className="text-text-dim">docs/SECURITY.md</code>.
+        </p>
+        <ul className="flex flex-col gap-2">
+          {TOOL_REGISTRY.map((tool) => (
+            <li
+              key={tool.name}
+              className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm text-text">{tool.description}</p>
+                <p className="text-mono-status text-[10px] uppercase text-text-faint">
+                  {tool.riskLevel} risk
+                </p>
+              </div>
+              <select
+                value={permissions[tool.name] ?? "ask"}
+                onChange={(e) =>
+                  setPermission(tool.name, e.target.value as ToolPermissionMode)
+                }
+                className="rounded-md border border-border bg-surface-raised px-2 py-1 text-xs text-text"
+              >
+                {PERMISSION_OPTIONS.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode === "disabled" ? "Disabled" : mode === "ask" ? "Ask Every Time" : "Allowed"}
+                  </option>
+                ))}
+              </select>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-xs uppercase tracking-widest text-text-dim">Recent Activity</h2>
+        {runHistory.length === 0 ? (
+          <p className="text-sm text-text-faint">No tool calls yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {runHistory.slice(0, 10).map((record) => (
+              <li key={record.id} className="flex items-center justify-between text-xs">
+                <span className="text-text-dim">{record.toolName}</span>
+                <span
+                  className={
+                    record.result === "success"
+                      ? "text-success"
+                      : record.result === "denied"
+                        ? "text-text-faint"
+                        : "text-danger"
+                  }
+                >
+                  {record.result}
+                </span>
+                <span className="text-text-faint">
+                  {new Date(record.startedAt).toLocaleTimeString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ together, [`docs/SECURITY.md`](docs/SECURITY.md) for the threat model, and
 
 ```bash
 pnpm install
-cp .env.example apps/dashboard/.env.local   # optional at this stage — everything runs on mock data without it
+cp .env.example apps/dashboard/.env.local   # optional — crypto + US weather are live with zero config
 pnpm dev
 ```
 
@@ -21,8 +21,14 @@ Open http://localhost:3000 (or whatever port Next.js picks if 3000 is busy).
 
 - `⌘K` / `Ctrl+K` — command palette
 - Command palette → **Run Global Intelligence Brief (Demo)** — exercises every orb
-  state and opens Intelligence Mode with the mock data pipeline, standing in for the
-  real voice → orchestration flow until Phase 4/5 land.
+  state and opens Intelligence Mode, standing in for the real voice → orchestration
+  flow until Phase 4/5 land.
+- Command palette → **Quick Actions** — real local Mac tools (open an app, open a
+  URL, send a notification, read system status), each going through a real
+  permission/approval flow. See `docs/SECURITY.md`.
+- Live data today with **zero setup**: crypto prices (CoinGecko) and US severe
+  weather alerts (NWS). News and equities/FX need free API keys — see
+  `.env.example` and `docs/PROJECT_STATE.md` for exactly where to get them.
 
 ## Monorepo layout
 
@@ -46,8 +52,9 @@ pnpm test        # vitest
 
 ## Current status
 
-Phase 0 (foundation) and Phase 1 (visual shell: orb, dashboard grid, command palette,
-settings, mock intelligence data) are done. No real news/market/weather/voice/AI
-providers are wired up yet — everything you see is clearly labeled `DEMO DATA`. See
-[`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the up-to-date phase status and
-what's next.
+Phase 0 (foundation), Phase 1 (visual shell), a first increment of Phase 3 (real
+crypto + US weather live now; news + equities/FX activate once their key is set),
+and Phase 6 (local Mac tools with a real permission/approval engine) are done. Voice
+and AI orchestration aren't wired up yet. See
+[`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the up-to-date phase status,
+known issues, and what's next.
