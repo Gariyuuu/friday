@@ -103,10 +103,25 @@ and one server (the VM) doesn't need a general HTTP API's flexibility.
   droplet's public IP is real infrastructure-identifying information that
   doesn't belong in a public repo, even though the forced-command SSH
   restriction means knowing it alone doesn't grant access.
+- **Quick Actions UI entry, added same session**: both VM tools were
+  voice-only until now. `⌘K` → "Run Command on Cloud VM…" / "Browse URL on
+  Cloud VM…" opens a small prompt (`VmPromptModal.tsx`) collecting the
+  command/URL, then goes through the exact same `runTool()` critical-risk
+  approval flow as voice — no bypass. **Real bug found and fixed via a live
+  Playwright browser test, not caught by review**: the prompt modal
+  originally stayed mounted until its async VM call resolved, so its
+  full-screen backdrop (same z-index, later in the DOM) sat on top of the
+  approval modal underneath it and silently absorbed clicks on "Allow
+  Once" — the approval modal was visible but unclickable. Fixed by closing
+  the prompt modal immediately on submit instead of waiting for the result.
+  **Verified end-to-end through an actual browser**, not just the API:
+  opened the command palette, selected the action, typed a real command,
+  confirmed the critical-risk banner appeared with "Always Allow" correctly
+  absent, clicked "Allow Once," and got back a toast with the real VM's
+  actual output — zero console errors throughout.
 - **Not built yet**: richer task types (multi-step browser interaction —
-  click, type, wait for an element, screenshot), a Quick-Actions UI entry
-  for either VM tool (voice-only today), and the DigitalOcean API token
-  being needed again for any future resize/destroy/snapshot (never
+  click, type, wait for an element, screenshot), and the DigitalOcean API
+  token being needed again for any future resize/destroy/snapshot (never
   persisted, by design — see Phase 8 below).
 
 ## Phase 8 — Cloud VM infrastructure (droplet live, hardened, in use by Phase 9)
@@ -164,14 +179,8 @@ especially). Spot-checked this session by reading the actual source tree:
 
 ## Next
 
-- Have a human or a future session actually SSH to the droplet and confirm
-  the VM-side `browse` claims before treating this feature as fully done.
-- Investigate why documentation about this specific verification gap kept
-  getting overwritten during this session — see the warning at the top.
-  Not urgent from a code-security standpoint (the app-layer mitigations are
-  real and independently confirmed either way), but worth understanding.
-- Quick-Actions UI entry for `run_on_vm`/`browse_on_vm` (voice-only today).
-- Richer VM task types (multi-step browser interaction).
+- Richer VM task types (multi-step browser interaction — click, type, wait
+  for an element, screenshot).
 - User verification needed (carried over): gesture-recognition feel with a
   real hand; click the autostart toggle once if desired.
 - `pnpm desktop:build` — needs a bundled Node server sidecar, not attempted.

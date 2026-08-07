@@ -27,6 +27,7 @@ export function CommandPalette() {
   const open = useUiStore((s) => s.commandPaletteOpen);
   const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const setMode = useUiStore((s) => s.setMode);
+  const openVmPrompt = useUiStore((s) => s.openVmPrompt);
   const router = useRouter();
   const runAction = useToolAction();
   const showToast = useToastStore((s) => s.show);
@@ -177,6 +178,18 @@ export function CommandPalette() {
             className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
           >
             System Status
+          </Command.Item>
+          <Command.Item
+            onSelect={() => run(() => openVmPrompt("shell"))}
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Run Command on Cloud VM… (critical, needs approval)
+          </Command.Item>
+          <Command.Item
+            onSelect={() => run(() => openVmPrompt("browse"))}
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Browse URL on Cloud VM… (critical, needs approval)
           </Command.Item>
         </Command.Group>
 

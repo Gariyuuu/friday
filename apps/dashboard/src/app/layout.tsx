@@ -4,6 +4,7 @@ import { CameraActiveIndicator } from "@/components/gestures/CameraActiveIndicat
 import { GestureController } from "@/components/gestures/GestureController";
 import { Toast } from "@/components/shell/Toast";
 import { ToolApprovalModal } from "@/components/tools/ToolApprovalModal";
+import { VmPromptModal } from "@/components/tools/VmPromptModal";
 import { VoiceActivation } from "@/components/voice/VoiceActivation";
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <GestureController />
         <CameraActiveIndicator />
         <ToolApprovalModal />
+        <VmPromptModal />
         <Toast />
       </body>
     </html>

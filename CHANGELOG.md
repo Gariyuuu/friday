@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0 — VM Tools in the Command Palette (Quick Actions, not just voice)
+
+- `⌘K` → "Run Command on Cloud VM…" / "Browse URL on Cloud VM…" — the same
+  `run_on_vm`/`browse_on_vm` tools voice already had, now reachable without
+  talking to FRIDAY. Goes through the identical critical-risk `runTool()`
+  approval flow, no bypass.
+- **Real bug found via a live Playwright browser test, not caught by
+  review**: the new prompt modal stayed mounted until its VM call resolved,
+  so its backdrop sat on top of the approval modal underneath and silently
+  ate clicks on "Allow Once." Fixed by closing the prompt immediately on
+  submit. Re-verified end-to-end through an actual browser afterward: typed
+  a real command, approved it, got back a toast with the real VM's actual
+  output, zero console errors.
+
 ## 0.12.0 — App-Layer SSRF Guard, Prompt-Injection Wrapper, VM Host to Env Var
 
 - Added `lib/vm/ssrf-guard.ts`: a second, independent layer of SSRF protection
