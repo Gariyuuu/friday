@@ -25,7 +25,7 @@ cd apps/dashboard
 pnpm desktop:dev   # first run compiles Rust (~1 min, one-time); opens a real macOS window
 ```
 
-- `⌥ + Space` — talk to FRIDAY (real OpenAI Realtime voice, needs `OPENAI_API_KEY`).
+- `⌥ + V` — talk to FRIDAY (real OpenAI Realtime voice, needs `OPENAI_API_KEY`).
   In `desktop:dev` this is a real system-wide shortcut (works even when FRIDAY
   isn't focused); in a browser tab it only works while the tab has focus. Ask it
   to open an app, check the weather, read the news, search the web, or check

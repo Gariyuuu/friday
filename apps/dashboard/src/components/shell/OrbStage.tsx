@@ -8,7 +8,7 @@ import { disconnectVoice, toggleVoiceMute } from "@/lib/voice/voice-controller";
 import { useOrbStore } from "@/stores/orb-store";
 
 const STATE_COPY: Record<string, string> = {
-  idle: "Press ⌥ + Space to talk, or ⌘K for commands.",
+  idle: "Press ⌥ + V to talk, or ⌘K for commands.",
   listening: "Listening…",
   thinking: "Thinking…",
   searching: "Searching…",

@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 personal, low-volume use. Needs{" "}
                 <code className="text-text-dim">OPENAI_API_KEY</code> with Realtime
                 API access. Once set, press{" "}
-                <code className="text-text-dim">⌥ + Space</code> anywhere in the app
+                <code className="text-text-dim">⌥ + V</code> anywhere in the app
                 to start talking.
               </p>
               {!config?.voice && (
@@ -549,7 +549,7 @@ function GeneralSection() {
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-text-dim">Global shortcut (⌥ + Space)</span>
+        <span className="text-text-dim">Global shortcut (⌥ + V)</span>
         <span className="text-mono-status text-xs text-text-faint">
           {desktop ? "System-wide" : "Only while this tab is focused"}
         </span>

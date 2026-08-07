@@ -10,7 +10,7 @@ function isTauri(): boolean {
 let registered = false;
 
 /**
- * Registers ⌥+Space as a real OS-level global shortcut when running inside the
+ * Registers ⌥+V as a real OS-level global shortcut when running inside the
  * Tauri desktop app (works even when FRIDAY isn't the focused window) — see
  * spec §11. No-op in a plain browser tab; the in-app `keydown` listener in
  * VoiceActivation.tsx already covers that case. Dynamically imports the plugin
@@ -21,7 +21,7 @@ export function registerDesktopGlobalShortcut(onTrigger: () => void): void {
   registered = true;
 
   import("@tauri-apps/plugin-global-shortcut")
-    .then(({ register }) => register("Alt+Space", (event) => {
+    .then(({ register }) => register("Alt+V", (event) => {
       if (event.state === "Pressed") onTrigger();
     }))
     .catch((error: unknown) => {

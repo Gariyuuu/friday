@@ -7,7 +7,7 @@ import { useOrbStore } from "@/stores/orb-store";
 import { useToastStore } from "@/stores/toast-store";
 
 /**
- * ⌥+Space toggles the realtime voice session — spec §11. In the browser this only
+ * ⌥+V toggles the realtime voice session — spec §11. In the browser this only
  * works while the window/tab is focused (standard `keydown`); inside the Tauri app
  * it's also registered as a real system-wide shortcut that works even when FRIDAY
  * isn't focused — see lib/desktop/global-shortcut.ts. Renders nothing itself.
@@ -17,7 +17,7 @@ export function VoiceActivation() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.altKey && e.code === "Space") {
+      if (e.altKey && e.code === "KeyV") {
         e.preventDefault();
         toggleVoice().catch((error: unknown) => {
           const message = error instanceof Error ? error.message : String(error);

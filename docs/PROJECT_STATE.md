@@ -116,7 +116,7 @@ Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
   user's own browser instead). Killed the test process afterward rather than
   leave a stray window.
 - **System-wide global shortcut, added this round**: `@tauri-apps/plugin-global-shortcut`
-  registers real OS-level ⌥+Space (works even when FRIDAY isn't focused), sharing
+  registers real OS-level ⌥+V (works even when FRIDAY isn't focused), sharing
   the exact same `toggleVoice()` logic as the in-browser `keydown` listener —
   `lib/desktop/global-shortcut.ts` no-ops outside Tauri (`"__TAURI_INTERNALS__" in
   window` check) so a plain web deployment never touches Tauri-only code.

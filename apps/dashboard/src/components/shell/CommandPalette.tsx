@@ -108,7 +108,7 @@ export function CommandPalette() {
             }
             className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
           >
-            {voiceConnected ? "End Voice Session" : "Talk to FRIDAY (⌥ + Space)"}
+            {voiceConnected ? "End Voice Session" : "Talk to FRIDAY (⌥ + V)"}
           </Command.Item>
         </Command.Group>
 

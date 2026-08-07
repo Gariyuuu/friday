@@ -48,7 +48,7 @@ apps/dashboard/src/
     intelligence/              Dashboard panels (news, markets, signals, media, detail)
     shell/                     Status bar, command palette, orb stage wrapper, toast
     tools/                     Tool approval modal
-    voice/                     VoiceActivation (⌥+Space keyboard listener, renders nothing)
+    voice/                     VoiceActivation (⌥+V keyboard listener, renders nothing)
     gestures/                  GestureController (lifecycle), CameraActiveIndicator
   stores/                      Zustand: orb-store, ui-store, tool-store, memory-store,
                                 gesture-store (persisted where relevant), toast-store
@@ -80,7 +80,7 @@ apps/dashboard/src/
       gesture-controller.ts       Dispatches synthetic pointer/wheel events at the globe canvas
       globe-registry.ts           Module-level registry Globe.tsx populates with its OrbitControls ref
     desktop/
-      global-shortcut.ts          Tauri-only (no-ops outside Tauri) ⌥+Space registration
+      global-shortcut.ts          Tauri-only (no-ops outside Tauri) ⌥+V registration
       autostart.ts                Tauri-only autostart enable/disable + isDesktopApp()
     logger.ts                    Structured, redacting logger
     demo.ts                      Demo-only sequence exercising every orb state
@@ -129,7 +129,7 @@ audit log entry in `tool-store`, visible in Settings → Tools.
 
 ### Data flow (voice)
 
-`⌥+Space` or ⌘K → "Talk to FRIDAY" → `connectVoice()` → `fetch("/api/voice/session")`
+`⌥+V` or ⌘K → "Talk to FRIDAY" → `connectVoice()` → `fetch("/api/voice/session")`
 (server mints an ephemeral token with `OPENAI_API_KEY`, never sent to the browser) →
 browser opens an `RTCPeerConnection` directly to OpenAI (`/v1/realtime/calls`) using
 that ephemeral token → mic audio flows out, assistant audio flows back and plays
