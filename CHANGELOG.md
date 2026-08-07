@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.12.0 — App-Layer SSRF Guard, Prompt-Injection Wrapper, VM Host to Env Var
+
+- Added `lib/vm/ssrf-guard.ts`: a second, independent layer of SSRF protection
+  for `browse_on_vm`, on top of the VM-side Docker network block from 0.11.0.
+  Blocks private/link-local/loopback destinations before a request ever
+  leaves the Mac — including via DNS resolution (not just literal IPs), which
+  defends against DNS rebinding. Verified live: metadata IP, `127.0.0.1`,
+  `10.10.0.1`, and even `localhost` (resolved and blocked) are all rejected
+  with a clear `400`, while real public URLs still work normally.
+- Browsed page content is now wrapped with an explicit "untrusted content"
+  delimiter before it re-enters the voice model's context — defense-in-depth
+  for prompt injection alongside the existing documented convention.
+- Moved the VM's IP/username out of a committed source constant
+  (`lib/vm/config.ts`) into `VM_HOST`/`VM_USER` env vars — real public
+  infrastructure-identifying information doesn't belong hardcoded in a public
+  repo, even though the forced-command SSH restriction means knowing the IP
+  alone doesn't grant access.
+- Repo docs reorganized from `docs/*.md` to the repo root; all cross-references
+  updated to match.
+
 ## 0.11.0 — Real Browser Automation on the VM, Fixed a Real SSRF Bug
 
 - Phase 9 gained a second task type: `browse_on_vm` renders a real URL with
