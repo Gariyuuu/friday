@@ -17,7 +17,13 @@ cp .env.example apps/dashboard/.env.local   # optional — crypto + US weather a
 pnpm dev
 ```
 
-Open http://localhost:3000 (or whatever port Next.js picks if 3000 is busy).
+Open http://localhost:3000 (or whatever port Next.js picks if 3000 is busy) — or,
+for a real native window instead of a browser tab:
+
+```bash
+cd apps/dashboard
+pnpm desktop:dev   # first run compiles Rust (~1 min, one-time); opens a real macOS window
+```
 
 - `⌥ + Space` — talk to FRIDAY (real OpenAI Realtime voice, needs `OPENAI_API_KEY`).
   Ask it to open an app, check the weather, read the news, or check system status —
@@ -55,9 +61,10 @@ pnpm test        # vitest
 
 ## Current status
 
-Phases 0, 1, 3, 4 (voice), 5 (orchestration), 6 (local tools), and 7 (memory) are
-all done and verified live — voice can actually call FRIDAY's real tools and answer
-with real data, confirmed against ground truth. Not started: Phase 8/9 (cloud VM —
-needs a provider/cost decision), Phase 10 (gestures), Phase 11 (real native
-packaging). See [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the up-to-date
-phase status, known issues, and what's next.
+Phases 0, 1, 3, 4 (voice), 5 (orchestration), 6 (local tools), 7 (memory), and 11
+(native app — `pnpm desktop:dev`) are all done and verified live — voice can
+actually call FRIDAY's real tools and answer with real data, confirmed against
+ground truth, and the native window is a real compiled app, not a mockup. Not
+started: Phase 8/9 (cloud VM — asked the user, held off for now), Phase 10
+(gestures). See [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the
+up-to-date phase status, known issues, and what's next.

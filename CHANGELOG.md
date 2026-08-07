@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 — Real Native macOS App (Tauri)
+
+- Installed Rust + Tauri CLI; scaffolded `apps/dashboard/src-tauri/` pointed at a
+  live Next.js server (not a static export — the app has ~10 API routes a static
+  export can't include; this was the deliberate, correct architecture choice, not
+  the simpler default)
+- Real app icon generated from the existing manifest-icon route, mic/camera usage
+  descriptions in a merged Info.plist, window sized for the actual dashboard
+  (1280×800, not Tauri's 800×600 default)
+- Verified with a real launch on the user's actual Mac, not just "it compiled":
+  confirmed via logs that real page navigation, a real API call
+  (`GET /api/config 200`), and the manifest/orb all worked inside the native
+  window; confirmed via `osascript`/System Events that the compiled binary is a
+  real foreground macOS process
+- `desktop:build` (distributable bundle) intentionally not attempted yet — needs a
+  bundled Node server sidecar, a different problem than `desktop:dev`
+- Excluded `src-tauri` from ESLint's scan (was picking up Rust build artifacts)
+
 ## 0.5.0 — Orchestration, Memory, and an Installable App
 
 - **Phase 5 (orchestration)**: voice now has real function-calling access to

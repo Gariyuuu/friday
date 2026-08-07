@@ -15,6 +15,8 @@ any future VM is semi-trusted and never gets control back over the Mac.
 
 ```
 apps/dashboard/         The whole product today (Next.js 16 App Router)
+  src-tauri/              Native macOS shell (Tauri v2, Rust) — points at the live
+                            Next.js server, doesn't bundle static files (see ARCHITECTURE.md)
   src/app/                routes + api/intelligence/*, api/tools/*, api/voice/*,
                             api/memory, api/config (server)
   src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/
@@ -44,11 +46,13 @@ knowledge holds.
 ## Commands
 
 ```bash
-pnpm dev         # from repo root — apps/dashboard dev server via Turborepo
+pnpm dev              # from repo root — apps/dashboard dev server via Turborepo
 pnpm build
 pnpm lint
-pnpm typecheck   # runs `next typegen` first — route types (e.g. LayoutProps<"/">) are generated, not shipped
-pnpm test        # vitest
+pnpm typecheck        # runs `next typegen` first — route types (e.g. LayoutProps<"/">) are generated, not shipped
+pnpm test             # vitest
+pnpm desktop:dev       # from apps/dashboard — native window (Tauri); first run compiles Rust, ~1 min
+pnpm desktop:build     # distributable bundle — NOT set up yet, produces a non-working app (see PROJECT_STATE.md)
 ```
 
 Run all four after any meaningful change, in `apps/dashboard` or from root via Turbo.
@@ -103,7 +107,11 @@ Fix errors before moving on — don't leave a phase half-verified.
   regardless of trigger source.
 - Never provision paid cloud infrastructure (VM rental, hosted DB, etc.) without the
   user's explicit go-ahead on provider and cost — Phase 8/9 is blocked on this, by
-  design, not an oversight.
+  design, not an oversight. The user was asked directly and said "not yet" —
+  don't restart this without asking again.
+- Remember that `pnpm desktop:dev` opens a real window on the user's actual,
+  possibly-in-use MacBook desktop (confirmed this session — it's not an isolated
+  sandbox). Clean up test processes afterward rather than leave stray windows.
 - Never silently replace an architectural decision (state management, provider
   pattern, monorepo layout) without updating `docs/ARCHITECTURE.md` and
   `docs/PROJECT_STATE.md` to say why.
@@ -119,11 +127,11 @@ Fix errors before moving on — don't leave a phase half-verified.
 
 ## Current status
 
-Phases 0, 1, 3, 4 (voice), 5 (orchestration/tool-calling), 6 (local tools), and 7
-(memory) are all complete and verified live end-to-end — including voice actually
-calling a real tool and answering with real system data confirmed against ground
-truth (`pmset`). Three real bugs were found and fixed this way, not caught by
-review alone. See `docs/PROJECT_STATE.md` for the full breakdown. Not started:
-Phase 8/9 (cloud VM — blocked on the user's provider/cost decision), Phase 10
-(gestures), Phase 11 (real native packaging — today there's only a web-manifest
-"Add to Dock" stand-in).
+Phases 0, 1, 3, 4 (voice), 5 (orchestration/tool-calling), 6 (local tools), 7
+(memory), and 11 (native packaging — `pnpm desktop:dev` launches a real macOS
+window) are all complete and verified live, not just built. Multiple real bugs
+across sessions were found and fixed by actually testing against real APIs/real
+launches, not caught by review alone — see `docs/PROJECT_STATE.md` for the full
+breakdown. Not started: Phase 8/9 (cloud VM — user was asked, said "not yet"),
+Phase 10 (gestures). Phase 11 is partial: `desktop:dev` works, `desktop:build`
+(distributable bundle) doesn't yet.

@@ -1,14 +1,30 @@
 # Architecture
 
-## Today (Phase 0/1/3/4/5/6/7)
+## Today (Phase 0/1/3/4/5/6/7/11)
 
 Everything lives in `apps/dashboard`, a single Next.js 16 App Router application —
 still no separate VM. Real data, local Mac tools, and memory flow through
 server-side route handlers; voice connects directly to OpenAI over WebRTC (no
 audio proxy) but now also has function-calling access back into all of FRIDAY's
-real capabilities — that's the orchestration layer (Phase 5).
+real capabilities — that's the orchestration layer (Phase 5). `src-tauri/` wraps
+this same app in a native macOS shell (Phase 11) — the product is still one
+Next.js app; Tauri just gives it a native window instead of a browser tab.
+
+### Why Tauri points at a live server, not a static export
+
+Tauri's default/simplest mode bundles static frontend files. This app has ~10 API
+routes (`/api/intelligence/*`, `/api/tools/*`, `/api/voice/session`, `/api/memory`)
+that only work with a running Node server — a static `next export` cannot include
+them at all. So `src-tauri/tauri.conf.json`'s `beforeDevCommand` spawns a real
+`next dev` process on a dedicated port (1420, chosen to avoid this machine's
+multi-project dev-server port contention) and Tauri's webview just loads that URL,
+same as pointing a browser at it. `pnpm desktop:build` (a distributable bundle)
+isn't set up yet for the same reason — it needs a bundled Node server sidecar, not
+just static files, and hasn't been attempted.
 
 ```
+apps/dashboard/src-tauri/   Tauri v2 native shell — Rust, points at the Next.js
+                              server rather than bundling static files (see above)
 apps/dashboard/src/
   app/
     "/"                     Orb + Intelligence Mode (client)
@@ -123,15 +139,16 @@ answer" loop the whole rest of the app was built to support.
 
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events (so real headlines get a globe marker, not just crypto/weather).
-- **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started, and
-  deliberately not attempted without the user's explicit go-ahead (needs a paid VM
-  provider chosen and a reviewed threat model first, per spec §24-27 and
-  `docs/SECURITY.md`).
+- **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started; the
+  user was asked directly this session and said "not yet." Needs a paid VM
+  provider chosen and a reviewed threat model before any code, per spec §24-27 and
+  `docs/SECURITY.md`, whenever it does happen.
 - **Phase 10 (gestures)**: MediaPipe webcam hand-tracking, opt-in only — no cost,
-  reasonable next autonomous step.
-- **Phase 11 (native packaging)**: Tauri — real menu bar presence, system-wide
-  global shortcut, auto-launch, a proper `.app` bundle. What exists today (web
-  manifest, "Add to Dock") is a lighter stand-in, not this.
+  reasonable next step. Not started.
+- **Phase 11 completion**: `desktop:build` (distributable bundle — needs a Node
+  server sidecar approach, not attempted), a system-wide global shortcut plugin
+  (currently ⌥+Space only works while the window is focused), menu bar presence,
+  auto-launch at login.
 
 ## Why no `packages/ui` / `packages/protocol` / `packages/security` yet
 

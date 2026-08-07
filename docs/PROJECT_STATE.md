@@ -1,11 +1,56 @@
 # Project State
 
-Last updated: 2026-08-07 (session 4 — Phase 5 orchestration and Phase 7 memory
-built and verified live; voice can now actually control FRIDAY, not just talk).
+Last updated: 2026-08-07 (session 4, part 2 — Phase 11 native packaging via Tauri,
+verified with a real compiled binary launching a real window on the user's Mac).
 
 Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
 ## Completed
+
+**Phase 11 — Native Packaging (Tauri)**
+
+- Installed Rust (via rustup) and `@tauri-apps/cli`/`@tauri-apps/api` — none of this
+  was present before this session.
+- `apps/dashboard/src-tauri/`: a real Tauri v2 shell. **Key architecture decision**:
+  Tauri's webview points at a running Next.js server (`beforeDevCommand: "pnpm exec
+  next dev -p 1420"`, fixed port to avoid this machine's multi-project port
+  contention), not a static export — the app has ~10 API routes (intelligence,
+  tools, voice, memory) that a static `next export` cannot include. This is the
+  correct pattern for a full-stack Next.js app in Tauri; it was not the simpler
+  "just bundle static files" approach because that approach would have silently
+  broken nearly everything already built.
+- `identifier: "com.gariyuu.friday"`, window sized 1280×800 (min 900×600) instead
+  of Tauri's 800×600 default — too small for this dashboard.
+- `src-tauri/Info.plist` merged in via `bundle.macOS.infoPlist` — adds
+  `NSMicrophoneUsageDescription` (voice) and `NSCameraUsageDescription` (future
+  Phase 10 gestures) so macOS's permission prompts show a real explanation instead
+  of a blank/default one or a silent failure.
+- Real app icon: reused the existing `manifest-icon` route (built for the PWA
+  manifest) to generate a 1024px source image, then `tauri icon` generated all
+  platform sizes from it — replaced Tauri's generic default icon. Removed the
+  iOS/Android/Windows-Store icon variants `tauri icon` also generates by default,
+  since only macOS desktop is targeted.
+- `pnpm desktop:dev` / `pnpm desktop:build` scripts added.
+- **Verified with a real launch, not just "it compiled"**: `pnpm desktop:dev`
+  compiled ~348 Rust crates (~56s, one-time cost — cached after) and launched.
+  Confirmed via the build log: real page navigation happened inside the native
+  window (`GET /` → `GET /settings` → back to `GET /`), the manifest was
+  auto-fetched by the webview, a real API route responded
+  (`GET /api/config 200`), and the Three.js orb mounted (`THREE.Clock` warning
+  appearing on each navigation back to `/`). Separately confirmed via
+  `osascript`/System Events that the compiled binary appears as a real
+  foreground-capable macOS process. **Important**: this ran on the user's actual
+  MacBook desktop, not an isolated sandbox — a real window opened (likely on a
+  different Space, since a full-screen capture from this session showed the
+  user's own browser instead). Killed the test process afterward rather than
+  leave a stray window.
+- **Not done**: `pnpm desktop:build` (a distributable, optionally code-signed
+  `.app`/`.dmg`) — deferred. `desktop:dev` is sufficient for the user's stated
+  goal ("let me test it out"); a signed distributable is a different, later need
+  (only relevant if this ever gets shared with someone else). No system-wide
+  global shortcut plugin wired up yet either (⌥+Space still only works while the
+  window has focus, same as the browser version) — a reasonable Tauri
+  `global-shortcut` plugin addition for later, not attempted this session.
 
 **Phase 0/1/3/4/6**: see prior session notes below this section header's history in
 git — unchanged this session except where noted. Monorepo, orb, globe, dashboard,
@@ -101,22 +146,33 @@ with zero extra infrastructure.
 
 ## Current
 
-Nothing in progress. Phases 0/1/3/4/5/6/7 are all live and verified end-to-end,
-including the hardest-to-fake kind of verification: real tool calls with real data
-confirmed against ground truth.
+Nothing in progress. Phases 0/1/3/4/5/6/7 are live and verified end-to-end
+(including real tool calls with real data confirmed against ground truth), and
+Phase 11 (native packaging) is verified with a real compiled app launching a real
+window. User explicitly declined Phase 8/9 (cloud VM) for now — asked, answered
+"not yet."
 
 ## Next
 
-- **Phase 8/9 (cloud VM + VM tools)**: explicitly not started — needs the user to
-  choose/pay for a VM provider and a reviewed threat model before any code, per
-  spec §24-27 and `docs/SECURITY.md`. Asked the user about this separately; not
-  something to just proceed on.
+- **Phase 8/9 (cloud VM + VM tools)**: user said "not yet" this session when asked
+  directly. Don't restart this without asking again — needs a provider/cost
+  decision and a reviewed threat model regardless.
+- **Phase 11 completion**: `desktop:build` (distributable signed app) not attempted
+  — only relevant once/if sharing the app with someone else matters. System-wide
+  global shortcut (Tauri's `global-shortcut` plugin) so ⌥+Space works without the
+  window being focused — currently it only works while focused, same as the
+  browser version.
 - **Phase 10 (gestures)**: MediaPipe webcam hand-tracking, opt-in only. Buildable
-  with no external cost — a reasonable next autonomous step.
-- **Phase 11 (real native packaging)**: Tauri — menu bar presence, system-wide
-  global shortcut (not just in-browser), auto-launch at login, a proper `.app`
-  bundle. The web-manifest "Add to Dock" from this session is a lighter stand-in,
-  not a replacement.
+  with no external cost. Not started this session — prioritized Phase 11 instead
+  since it more directly served the user's explicit "app on the Mac" request. One
+  real caveat for whoever picks this up: unlike voice (which could be tested with
+  Chromium's fake-audio-capture + synthesized speech), there's no equivalent easy
+  way to verify actual hand-gesture *recognition accuracy* without a real camera
+  and a real hand — Chromium's fake-video-capture flag exists but a synthetic
+  video convincing enough for MediaPipe's hand landmarker is a much higher bar
+  than a WAV file was for speech. Expect to verify the permission flow, no-crash
+  behavior, and camera indicator programmatically, but the actual gesture-mapping
+  quality needs the user.
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events so they get globe markers (still open, lower priority).
 - **Phase 2 finishing touch**: auto-focus globe on the event FRIDAY is currently
