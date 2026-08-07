@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toast } from "@/components/shell/Toast";
 import { ToolApprovalModal } from "@/components/tools/ToolApprovalModal";
@@ -18,6 +18,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "F.R.I.D.A.Y.",
   description: "Personal Intelligence System",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "FRIDAY",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#050608",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
