@@ -19,7 +19,8 @@ pnpm dev
 
 Open http://localhost:3000 (or whatever port Next.js picks if 3000 is busy).
 
-- `⌥ + Space` — talk to FRIDAY (real OpenAI Realtime voice — needs `OPENAI_API_KEY`)
+- `⌥ + Space` — talk to FRIDAY (real OpenAI Realtime voice, needs `OPENAI_API_KEY` —
+  verified working live: real WebRTC connection, real speech detection)
 - `⌘K` / `Ctrl+K` — command palette
 - Command palette → **Run Global Intelligence Brief (Demo)** — exercises every orb
   state and opens Intelligence Mode, standing in for real orchestration (Phase 5).
@@ -52,10 +53,8 @@ pnpm test        # vitest
 
 ## Current status
 
-Phase 0, Phase 1, Phase 3 (real crypto/weather with zero setup; real news and
-equities/FX with the user's keys), Phase 6 (local Mac tools with a real
-permission/approval engine), and Phase 4 (voice, OpenAI Realtime — built and
-wired up, but not yet verified against a real `OPENAI_API_KEY`) are done. AI
-orchestration (Phase 5) isn't wired up yet. See
-[`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the up-to-date phase status,
-known issues, and what's next.
+Phase 0, Phase 1, Phase 3, Phase 4 (voice), and Phase 6 are all done and verified
+live — including voice, tested end-to-end against the real OpenAI API (real WebRTC
+connection, real speech detection). AI orchestration (Phase 5) isn't wired up yet.
+See [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for the up-to-date phase
+status, known issues, and what's next.

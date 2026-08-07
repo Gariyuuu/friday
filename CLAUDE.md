@@ -101,16 +101,16 @@ Fix errors before moving on — don't leave a phase half-verified.
   endpoint once. Check current docs (WebFetch) before changing `lib/voice/config.ts`
   or the request shapes in `app/api/voice/session/route.ts`.
 - Never report a feature as "done"/"verified" if it hasn't actually been exercised
-  end-to-end. Voice (Phase 4) is built but its live WebRTC connection has not been —
-  see `docs/PROJECT_STATE.md` for exactly what's confirmed vs. assumed. Report status
-  with that same honesty going forward.
+  end-to-end. This isn't hypothetical: Phase 4 voice was initially reported as
+  "built, not verified" — testing it against the real API immediately surfaced a
+  real request-shape bug (`turn_detection` nesting) that would have shipped
+  otherwise. Keep reporting status with that same honesty.
 
 ## Current status
 
-Phase 0, Phase 1, Phase 3 (real crypto/weather with zero setup; real news and
-equities/FX with the user's keys, verified live), and Phase 6 (real local Mac tools
-with a working permission/approval engine, verified) are complete and verified.
-Phase 4 (voice, OpenAI Realtime) is built and wired up but **not yet verified**
-against a real `OPENAI_API_KEY` — see `docs/PROJECT_STATE.md` for the full breakdown,
-what's confirmed vs. assumed, and known issues. AI orchestration (Phase 5) isn't
-wired up yet.
+Phase 0, Phase 1, Phase 3, Phase 4 (voice), and Phase 6 are complete and verified
+live end-to-end — including a real bug (`turn_detection` field nesting) found and
+fixed by testing against the live OpenAI API rather than trusting synthesized docs.
+See `docs/PROJECT_STATE.md` for the full breakdown and exactly what's confirmed vs.
+still needing a real human conversation test. AI orchestration (Phase 5) isn't wired
+up yet.

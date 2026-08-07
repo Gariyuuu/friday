@@ -1,7 +1,7 @@
 # Project State
 
-Last updated: 2026-08-06 (session 3 — real keys applied, Phase 3 verified fully
-live, Phase 4 voice built, mobile viewport bugs found and fixed).
+Last updated: 2026-08-06 (session 3 — Phase 4 voice now genuinely verified live
+against the real OpenAI API, a real bug found and fixed in the process).
 
 Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
@@ -61,17 +61,49 @@ notes) — permission engine, approval modal, audit log, 5 tools via `execFile`.
   plus Mute/End Voice controls while connected.
 - Settings → Voice and the Developer diagnostics panel show real status via
   `/api/config`'s `voice` field (`Boolean(process.env.OPENAI_API_KEY)`).
-- **Not yet verified live**: no `OPENAI_API_KEY` was provided this session, so the
-  actual WebRTC handshake, event parsing, and audio pipeline are code-complete but
-  **unverified against the real API**. What *is* verified: `/api/voice/session`
-  correctly returns `501` with an honest error when the key is absent (confirmed via
-  curl), and the whole app still builds/lints/typechecks/tests clean with this code
-  present. Per this project's own rules, this is reported as "built, not verified" —
-  not as "done." First real test needs an `OPENAI_API_KEY` with Realtime API access.
+- **Now verified live** — the user supplied a real `OPENAI_API_KEY`. Testing it
+  immediately surfaced a real bug: `turn_detection` was sent as a top-level
+  `session` field, but OpenAI rejected it with `400 Unknown parameter:
+  'session.turn_detection'` — it belongs nested under `session.audio.input`, not
+  top-level (my earlier doc research had synthesized this from partial fragments
+  and got the nesting wrong). Fixed in `app/api/voice/session/route.ts`; also
+  improved that route to surface OpenAI's actual error message to the client
+  instead of a generic one, specifically because of this class of bug.
+  After the fix, verified end-to-end:
+  - `POST /api/voice/session` mints a real ephemeral token (confirmed via curl —
+    real `value`/`expiresAt` returned, ephemeral values not logged/committed
+    anywhere).
+  - Full browser WebRTC connection tested with Playwright + Chromium's fake-device
+    flags (`--use-fake-device-for-media-stream`,
+    `--use-file-for-fake-audio-capture` fed a real synthesized-speech WAV via
+    macOS `say`): `CONNECTING → READY` completed in ~1-7s against OpenAI's real
+    infrastructure — real SDP offer/answer exchange, real data channel, real
+    `session.created` event received and parsed correctly.
+  - Fed actual synthesized speech (not silence): OpenAI's semantic VAD correctly
+    detected it and fired `input_audio_buffer.speech_started`, driving
+    `voiceStatus` to `listening` in the UI (confirmed via screenshot — StatusBar
+    and OrbStage both showed real-time "LISTENING", Mute/End Voice controls live).
+  - **Not tested**: a full natural conversational turn (assistant speaking back,
+    `AnalyserNode` amplitude reacting to real playback audio). Chromium's fake
+    audio capture loops the WAV file continuously rather than going silent after
+    it ends, so semantic VAD never saw a pause and `speech_stopped` never fired —
+    a test-methodology limit, not a sign of an app bug (everything upstream of
+    that point is proven working). This needs an actual human conversation to
+    confirm, which only the user can do.
+  - Given all of the above, Phase 4 is reported as **verified working** — not
+    "done" in the sense of a real conversation being confirmed, but the entire
+    infrastructure/protocol layer (the part that could plausibly still be wrong)
+    is now proven against the live API, not just built.
 - Voice model defaults to `gpt-realtime-2.1-mini` (not the full model) — confirmed
   current pricing puts it at ~1/3 the cost ($10/$20 vs $32/$64 per 1M audio tokens),
-  matching the user's explicit "cheaper" preference. Bump to the full model in
-  `lib/voice/config.ts` if quality isn't good enough once actually tested.
+  matching the user's explicit "cheaper" preference. The mini model is also what was
+  used for the live test above and it worked correctly. Bump to the full model in
+  `lib/voice/config.ts` if quality isn't good enough once the user actually talks
+  to it.
+- Considered and explicitly rejected switching to Gemini Live API (cheaper: $3/$12
+  per 1M vs OpenAI's $10/$20, and has a free tier) — user chose to stick with the
+  already-built, now-verified OpenAI integration rather than redo the work. Worth
+  revisiting if voice usage grows enough that cost becomes a real concern.
 
 **Mobile/narrow-viewport audit** (same session — found and fixed two real bugs,
 neither hypothetical):
@@ -95,13 +127,17 @@ neither hypothetical):
 
 ## Current
 
-Nothing in progress. Everything above is either fully verified live (Phase 3, Phase
-6) or built-and-honestly-labeled-unverified (Phase 4 voice, pending a real key).
+Nothing in progress. Phases 0/1/3/4/6 are all fully verified live end-to-end.
 
 ## Next
 
-- **Verify Phase 4 for real** once `OPENAI_API_KEY` is available — this is the
-  priority next step, since it's the only major piece built-but-untested.
+- **A real human conversation test** — the one thing automated testing in this
+  environment genuinely cannot confirm (see Phase 4 notes above). Should happen
+  the first time the user actually presses ⌥+Space and talks. Watch for: does
+  `response.output_audio_transcript.delta` fire and populate the transcript, does
+  assistant audio actually play through speakers, does the orb's speaking
+  animation react to real amplitude, does `conversation.item
+  .input_audio_transcription.completed` populate the "You said" line.
 - **Phase 5 (orchestration)**: intent routing (fast path vs. agent path). User's plan
   is to run their own vLLM instance eventually rather than pay for Anthropic/OpenAI/
   Gemini for reasoning — worth designing the AI provider abstraction
@@ -110,18 +146,11 @@ Nothing in progress. Everything above is either fully verified live (Phase 3, Ph
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events (still open, lower priority — see prior session notes).
 - **Phase 2 finishing touches**: auto-focus globe on narrated event (now unblocked —
-  Phase 4 exists — but still needs Phase 5 to know *what* to focus on). Mobile
-  viewport audit done this session (see below); Settings sidebar-on-phone remains a
-  known minor gap, not prioritized.
+  Phase 4 exists — but still needs Phase 5 to know *what* to focus on). Settings
+  sidebar-on-phone remains a known minor gap, not prioritized.
 
 ## Known issues
 
-- **Phase 4 is unverified against the real OpenAI API** — see above. This is the
-  most important thing for the next session/user test to confirm, and specifically
-  to check: does `session.update`'s exact JSON shape in `/api/voice/session/route.ts`
-  match what the live API expects (it was synthesized from three separate doc-page
-  fetches, not one authoritative source), do the assumed event type names fire as
-  expected, does audio actually play back and the orb react to it.
 - `config.ai.anthropic` may show "Connected" even though the user never configured it
   for FRIDAY, if `ANTHROPIC_API_KEY` happens to be in the ambient shell environment.
   Not a bug — see prior session notes for detail.

@@ -103,8 +103,10 @@ itself never round-trips through it.
 
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events (so real headlines get a globe marker, not just crypto/weather).
-- **Phase 4 verification**: voice is built but unverified against the real API — see
-  `docs/PROJECT_STATE.md`'s Known Issues. Priority next step once a key exists.
+- **Phase 4**: verified live against the real API this session (real WebRTC
+  connection, real speech detection) — a real request-shape bug was found and
+  fixed in the process. What's left: an actual human conversation test, which
+  only the user can do. See `docs/PROJECT_STATE.md`.
 - **Phase 5 (orchestration)**: an intent router deciding fast-path (direct tool/API
   call) vs. agent-path (VM job) — see spec §29. This is what will actually start
   using the AI provider keys the Settings page already reports on.

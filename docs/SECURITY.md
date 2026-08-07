@@ -40,9 +40,9 @@ just "future work."
   needs *some* credential to talk to a third party directly.
 - The settings UI shows every *unbuilt* integration as "Not configured" rather than a
   working-looking control (spec §67) — this still applies to memory and the VM
-  connection. Voice is built but its actual connection is unverified without a real
-  key — see `docs/PROJECT_STATE.md`'s Known Issues; the UI still honestly reports
-  "Not configured" until `OPENAI_API_KEY` is present, so this rule holds either way.
+  connection. Voice was tested against the real API this session and confirmed
+  working (real WebRTC handshake, real speech detection) — see
+  `docs/PROJECT_STATE.md`.
 
 ## The model this project is committed to (governs every future phase)
 

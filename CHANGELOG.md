@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0 — Voice Verified Live
+
+- Applied user's real `OPENAI_API_KEY`, moved default voice model to
+  `gpt-realtime-2.1-mini` after confirming current pricing (~1/3 the cost of the
+  full model), matching the user's cost preference
+- Investigated switching to Gemini Live API (cheaper, has a free tier) — user chose
+  to keep the already-built OpenAI integration; documented for later reconsideration
+- Found and fixed a real bug on first live test: `turn_detection` was sent as a
+  top-level `session` field; OpenAI rejected it (`400 Unknown parameter`) — it
+  belongs nested under `session.audio.input`. Also improved the route to surface
+  OpenAI's actual error message to the client instead of a generic one.
+- Verified end-to-end against the real API: ephemeral token minting (curl), full
+  browser WebRTC handshake (`CONNECTING → READY`, Playwright + Chromium fake-device
+  flags), and real speech detection (fed synthesized speech via macOS `say`,
+  confirmed OpenAI's semantic VAD fired `input_audio_buffer.speech_started` and the
+  UI correctly reflected `LISTENING` in real time)
+- Not yet tested: a full natural conversational turn (needs a real human, not a
+  looping fake-audio file) — documented as the one remaining open item
+
 ## 0.3.0 — Real Keys Applied & Voice (Phase 4)
 
 - Applied user's real `NEWS_API_KEY` and `TWELVE_DATA_API_KEY` — news and markets

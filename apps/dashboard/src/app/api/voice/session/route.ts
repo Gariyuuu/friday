@@ -36,10 +36,12 @@ export async function POST() {
           type: "realtime",
           model: REALTIME_MODEL,
           audio: {
-            input: { transcription: { model: TRANSCRIBE_MODEL } },
+            input: {
+              transcription: { model: TRANSCRIBE_MODEL },
+              turn_detection: { type: "semantic_vad" },
+            },
             output: { voice: REALTIME_VOICE },
           },
-          turn_detection: { type: "semantic_vad" },
         },
       }),
     });
@@ -47,7 +49,15 @@ export async function POST() {
     if (!res.ok) {
       const body = await res.text();
       logger.error("OpenAI client_secrets request failed", { status: res.status, body });
-      return NextResponse.json({ error: "failed to create voice session" }, { status: 502 });
+      // Surface OpenAI's actual error message (no secrets in it) rather than a
+      // generic message — this exact class of bug (a wrong request field) is why.
+      let detail = body;
+      try {
+        detail = (JSON.parse(body) as { error?: { message?: string } }).error?.message ?? body;
+      } catch {
+        // body wasn't JSON — fall through and use it as-is
+      }
+      return NextResponse.json({ error: `voice session rejected: ${detail}` }, { status: 502 });
     }
 
     const data = (await res.json()) as { value: string; expires_at?: number };
