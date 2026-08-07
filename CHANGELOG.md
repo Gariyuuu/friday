@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.15.0 — Real Test Coverage for Security-Critical Logic
+
+- Test suite went from 2 tests (1 file) to 37 tests (4 files) by adding
+  coverage for the pure, high-stakes logic that had none: the SSRF guard
+  (21 tests — every blocked range, boundary cases just inside/outside each
+  range, DNS-rebinding defense via mocked resolution, IPv4 and IPv6), the
+  gesture detector (7 tests — pinch, open palm, two-hand distance, multi-hand
+  primary-hand selection), and the tool permission/approval engine (7 tests
+  — disabled/allow/ask modes, deny/allow_once/always_allow outcomes, audit
+  log records, unknown-tool rejection).
+- **Found and fixed a real bug while writing the SSRF guard tests**: Node's
+  `URL` parser keeps the brackets on an IPv6 literal hostname (`"[::1]"`, not
+  `"::1"`), so the IPv6 blocklist check was comparing against the wrong
+  string and never actually matched — meaning IPv6 loopback/link-local
+  literals weren't being blocked despite the code appearing to handle them.
+  Fixed by stripping the brackets before the range check; re-verified live
+  through the real app that `http://[::1]/` and other IPv6 cases are now
+  genuinely rejected, with no regression on the already-working IPv4 path.
+
 ## 0.14.0 — Multi-Step Browser Interaction on the VM
 
 - `browse_on_vm` now accepts an optional `steps` array (up to 10):

@@ -95,6 +95,15 @@ and one server (the VM) doesn't need a general HTTP API's flexibility.
   literal IPs — defends against DNS rebinding). Verified live: the metadata
   IP, `127.0.0.1`, `10.10.0.1`, and `localhost` (resolved and blocked) are
   all rejected with a clear `400`; real public URLs still work.
+- **Real bug found later the same session by adding unit tests for this
+  guard**: Node's `URL` parser keeps the brackets on an IPv6 literal
+  hostname (`"[::1]"`, not `"::1"`), so the IPv6 blocklist comparison never
+  actually matched — IPv6 loopback/link-local literals weren't being
+  blocked despite the code looking like it handled them (this didn't affect
+  the real-world DigitalOcean metadata fix, which is IPv4-only). Fixed by
+  stripping the brackets before the range check. 21 tests now cover this
+  file (every blocked range, boundary cases, DNS-rebinding defense via
+  mocked resolution, both IPv4 and IPv6) — see `## Test coverage` below.
 - **Prompt-injection defense-in-depth**: browsed page content is wrapped
   with an explicit `BEGIN/END UNTRUSTED PAGE CONTENT` delimiter before it
   reaches the voice model, on top of the existing documented convention.
@@ -193,7 +202,38 @@ especially). Spot-checked this session by reading the actual source tree:
 Every phase has a live, verified vertical slice, including all of Phase 9:
 `shell` and `browse` (single-shot and multi-step interaction), the SSRF fix
 and its two independent layers, and a Quick Actions UI entry — all
-re-verified live against the actual droplet and through the real app.
+re-verified live against the actual droplet and through the real app. Test
+coverage was thin (2 tests total) until this session added real unit tests
+for the highest-stakes pure logic — see `## Test coverage` below.
+
+## Test coverage
+
+Went from 2 tests (1 file) to 37 tests (4 files) this session:
+
+- `lib/vm/__tests__/ssrf-guard.test.ts` (21 tests) — every blocked IPv4/IPv6
+  range, boundary cases just inside/outside each range, DNS-rebinding
+  defense via mocked `dns.lookup`. Caught a real IPv6 bracket-handling bug
+  (see Phase 9 section above).
+- `lib/gestures/__tests__/gesture-detector.test.ts` (7 tests) — pinch
+  detection, open-palm detection, two-hand distance, which hand is treated
+  as primary when multiple are visible. Synthetic 21-point landmark
+  fixtures, no real camera/MediaPipe needed.
+- `lib/tools/__tests__/run-tool.test.ts` (7 tests) — the actual permission/
+  approval enforcement path every tool call goes through: disabled/allow/ask
+  modes, deny/allow_once/always_allow outcomes and their effect on standing
+  permissions, audit log records for success/failure/denial, unknown-tool
+  rejection. Needed a real fix to get working at all: zustand's `persist`
+  middleware reads `window.localStorage` exactly once at module-evaluation
+  time, so a plain top-level test import was already too late to stub it —
+  fixed by stubbing `window.localStorage` first, then dynamically
+  `import()`-ing the store/tool modules afterward.
+- `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
+  log-level filtering.
+- Not covered yet: anything requiring a real browser/DOM interaction
+  (components), anything requiring the real VM/network (intentionally —
+  those are verified live instead, which this project treats as the more
+  meaningful signal for infra-dependent code; see e.g. Phase 9's live
+  verification notes above rather than mocked integration tests for it).
 
 ## Next
 
@@ -240,17 +280,3 @@ re-verified live against the actual droplet and through the real app.
 ## Migration notes
 
 Docs restructuring this session (see above). No data migrations.
-
-## Uncommitted work (as of the end of this documentation pass)
-
-Run `git status` to get the current, real answer — this section describes
-what was true partway through this session and may already be stale. At one
-point, the working tree had: `.env.example`, `CHANGELOG.md`, `CLAUDE.md`,
-`README.md` modified (mostly `docs/` cross-reference fixups); `PROJECT_STATE.md`,
-`SECURITY.md`, `ARCHITECTURE.md` moved from `docs/` and substantially
-rewritten by this documentation pass; `TASKS.md`, `FEATURES.md`, `DATABASE.md`,
-`DEPLOYMENT.md` and other canonical files newly created by this pass. A
-separate commit (`1769221`) already captured the browse_on_vm feature work
-itself (Mac-side code, SSRF guard, prompt-injection wrapper, config.ts env
-vars) — that part is committed, not pending. Check `git log` and `git
-status` directly rather than trusting this paragraph once time has passed.

@@ -61,7 +61,10 @@ export async function assertPublicUrl(rawUrl: string): Promise<void> {
     return;
   }
   if (hostname.includes(":")) {
-    if (isBlockedV6(hostname)) {
+    // Node's URL parser keeps the brackets on an IPv6 literal hostname
+    // ("[::1]", not "::1") — strip them before range-checking.
+    const bare = hostname.replace(/^\[|\]$/g, "");
+    if (isBlockedV6(bare)) {
       throw new SsrfBlockedError(`${hostname} is a private/link-local address`);
     }
     return;
