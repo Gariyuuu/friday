@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — Real Keys Applied & Voice (Phase 4)
+
+- Applied user's real `NEWS_API_KEY` and `TWELVE_DATA_API_KEY` — news and markets
+  confirmed fully live (14 real headlines, 5 real market quotes via curl)
+- Fixed Twelve Data equity symbols: `SPX`/`IXIC` aren't on the free plan (403/404) —
+  swapped for `SPY`/`QQQ` ETF proxies, confirmed working
+- Voice provider decision: OpenAI Realtime API over LiveKit — no separate
+  infrastructure to run, cheaper for personal/low-volume use
+- Verified OpenAI's Realtime API surface against live docs (WebFetch) rather than
+  training data — it has renamed endpoints before (`sessions` → `client_secrets`)
+- Built Phase 4 end-to-end: ephemeral-token server route (`/api/voice/session`,
+  `OPENAI_API_KEY` never reaches the browser), browser WebRTC session with real mic
+  capture and a real `AnalyserNode` on the assistant's audio driving the orb's
+  speaking state (no simulated waveform), event handling for transcripts/turn state,
+  `⌥ + Space` activation, live transcript UI, mute/end controls
+- Honest status: voice is code-complete but **not yet verified** against a real
+  `OPENAI_API_KEY` — reported as built-not-verified per this project's own rules
+
 ## 0.2.0 — Real Data & Local Tools
 
 - Moved intelligence data fetching server-side (`/api/intelligence/*` route

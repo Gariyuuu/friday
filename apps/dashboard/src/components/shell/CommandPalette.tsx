@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { runGlobalBriefDemo } from "@/lib/demo";
 import { getSystemStatus, openApplication, openUrl, showNotification } from "@/lib/tools/client";
+import { connectVoice, disconnectVoice, isVoiceConnected } from "@/lib/voice/voice-controller";
+import { useOrbStore } from "@/stores/orb-store";
 import { useToastStore } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -28,6 +30,7 @@ export function CommandPalette() {
   const router = useRouter();
   const runAction = useToolAction();
   const showToast = useToastStore((s) => s.show);
+  const voiceConnected = useOrbStore((s) => s.voiceStatus !== "offline" && s.voiceStatus !== "error");
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -83,6 +86,29 @@ export function CommandPalette() {
             className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
           >
             Settings
+          </Command.Item>
+        </Command.Group>
+
+        <Command.Group
+          heading="Voice"
+          className="px-2 pb-1 pt-2 text-[10px] uppercase tracking-widest text-text-faint"
+        >
+          <Command.Item
+            onSelect={() =>
+              run(() => {
+                if (isVoiceConnected()) {
+                  disconnectVoice();
+                } else {
+                  connectVoice().catch((error: unknown) => {
+                    const message = error instanceof Error ? error.message : String(error);
+                    showToast(`Voice — ${message}`, "error");
+                  });
+                }
+              })
+            }
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            {voiceConnected ? "End Voice Session" : "Talk to FRIDAY (⌥ + Space)"}
           </Command.Item>
         </Command.Group>
 

@@ -54,9 +54,12 @@ async function getCryptoQuotes(): Promise<MarketQuote[]> {
   });
 }
 
+// Raw index symbols (SPX/IXIC) aren't available on Twelve Data's free plan and
+// returned 403/404 in testing — SPY/QQQ (the ETFs tracking them) are, and are close
+// enough proxies for a dashboard glance rather than a trading terminal.
 const EQUITY_SYMBOLS: { symbol: string; label: string }[] = [
-  { symbol: "SPX", label: "S&P 500" },
-  { symbol: "IXIC", label: "NASDAQ" },
+  { symbol: "SPY", label: "S&P 500 (SPY)" },
+  { symbol: "QQQ", label: "NASDAQ 100 (QQQ)" },
   { symbol: "USD/JPY", label: "USD/JPY" },
 ];
 

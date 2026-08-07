@@ -1,10 +1,11 @@
 # Security model
 
-## Current state (Phase 0/1/3/6)
+## Current state (Phase 0/1/3/4/6)
 
-Still no VM, no user data storage/memory. Two real security surfaces now exist:
-server-side API keys (news, markets) and real local tool execution (Phase 6). Both
-are live and worth understanding, not just "future work" anymore.
+Still no VM, no user data storage/memory. Three real security surfaces now exist:
+server-side API keys (news, markets), real local tool execution (Phase 6), and voice
+(Phase 4, an ephemeral-credential pattern). All are live and worth understanding, not
+just "future work."
 
 - `.env.example` documents every credential. Nothing in the repo is a real secret.
   `.env` / `.env.local` are gitignored.
@@ -30,9 +31,18 @@ are live and worth understanding, not just "future work" anymore.
   Everything routes through a permission engine (disabled/ask/allow per tool,
   `stores/tool-store.ts`) and an approval modal for anything not explicitly allowed
   — see "Tool risk model" below, now implemented rather than planned.
+- **Voice uses an ephemeral-credential pattern** (Phase 4): `OPENAI_API_KEY` is read
+  only in `app/api/voice/session/route.ts` (server-only), which exchanges it for a
+  short-lived token from OpenAI's `client_secrets` endpoint. Only that short-lived
+  token — never the real key — reaches the browser, which uses it to open a direct
+  WebRTC connection to OpenAI. This is the same shape as the tool/intelligence
+  boundary (real secret stays server-side) applied to a case where the client still
+  needs *some* credential to talk to a third party directly.
 - The settings UI shows every *unbuilt* integration as "Not configured" rather than a
-  working-looking control (spec §67) — this still applies to voice, memory, and the
-  VM connection.
+  working-looking control (spec §67) — this still applies to memory and the VM
+  connection. Voice is built but its actual connection is unverified without a real
+  key — see `docs/PROJECT_STATE.md`'s Known Issues; the UI still honestly reports
+  "Not configured" until `OPENAI_API_KEY` is present, so this rule holds either way.
 
 ## The model this project is committed to (governs every future phase)
 

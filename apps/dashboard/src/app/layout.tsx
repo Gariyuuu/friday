@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toast } from "@/components/shell/Toast";
 import { ToolApprovalModal } from "@/components/tools/ToolApprovalModal";
+import { VoiceActivation } from "@/components/voice/VoiceActivation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col bg-void text-text">
         {children}
+        <VoiceActivation />
         <ToolApprovalModal />
         <Toast />
       </body>

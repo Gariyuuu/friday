@@ -20,7 +20,9 @@ export async function GET() {
       video: Boolean(process.env.YOUTUBE_API_KEY),
       search: Boolean(process.env.SEARCH_API_KEY),
     },
-    voice: Boolean(process.env.VOICE_PROVIDER),
+    // Voice provider is OpenAI Realtime (decided this session — cheaper and no
+    // separate infra to run vs. LiveKit). It just needs OPENAI_API_KEY.
+    voice: Boolean(process.env.OPENAI_API_KEY),
     memory: Boolean(process.env.DATABASE_URL),
     vm: Boolean(process.env.VM_GATEWAY_URL),
   });

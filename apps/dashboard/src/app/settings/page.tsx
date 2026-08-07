@@ -4,6 +4,7 @@ import type { ToolPermissionMode } from "@friday/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { TOOL_REGISTRY } from "@/lib/tools/registry";
+import { useOrbStore } from "@/stores/orb-store";
 import { useToolStore } from "@/stores/tool-store";
 import { useUiStore, type GraphicsQuality } from "@/stores/ui-store";
 
@@ -86,6 +87,7 @@ export default function SettingsPage() {
   const graphicsQuality = useUiStore((s) => s.graphicsQuality);
   const setGraphicsQuality = useUiStore((s) => s.setGraphicsQuality);
   const config = useConfigStatus();
+  const voiceStatus = useOrbStore((s) => s.voiceStatus);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -130,7 +132,21 @@ export default function SettingsPage() {
           {section === "voice" && (
             <div className="max-w-md space-y-4">
               <h2 className="text-xs uppercase tracking-widest text-text-dim">Voice</h2>
-              <NotConfigured setting="Realtime voice provider" phase="Phase 4" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-dim">OpenAI Realtime (WebRTC)</span>
+                <StatusTag ok={config?.voice ?? false} onLabel="Ready" />
+              </div>
+              <p className="text-xs text-text-faint">
+                Chosen over LiveKit — no separate server to run, and cheaper for
+                personal, low-volume use. Needs{" "}
+                <code className="text-text-dim">OPENAI_API_KEY</code> with Realtime
+                API access. Once set, press{" "}
+                <code className="text-text-dim">⌥ + Space</code> anywhere in the app
+                to start talking.
+              </p>
+              {!config?.voice && (
+                <NotConfigured setting="OPENAI_API_KEY" phase="right now — just add the key" />
+              )}
             </div>
           )}
 
@@ -246,13 +262,17 @@ export default function SettingsPage() {
               <ul className="flex flex-col gap-2 text-sm">
                 <li className="flex items-center justify-between">
                   <span className="text-text-dim">Voice</span>
-                  <span className="text-mono-status text-xs text-text-faint">OFFLINE</span>
+                  <span className="text-mono-status text-xs text-text-faint">
+                    {voiceStatus.toUpperCase()}
+                    {config?.voice ? "" : " (no key)"}
+                  </span>
                 </li>
                 <li className="flex items-center justify-between">
                   <span className="text-text-dim">AI provider</span>
-                  <span className="text-mono-status text-xs text-text-faint">
-                    Not configured
-                  </span>
+                  <StatusTag
+                    ok={(config?.ai.openai || config?.ai.anthropic || config?.ai.gemini) ?? false}
+                    onLabel="Key present (unused until Phase 5)"
+                  />
                 </li>
                 <li className="flex items-center justify-between">
                   <span className="text-text-dim">VM</span>

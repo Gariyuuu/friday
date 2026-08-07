@@ -16,10 +16,11 @@ any future VM is semi-trusted and never gets control back over the Mac.
 ```
 apps/dashboard/         The whole product today (Next.js 16 App Router)
   src/app/                routes + api/intelligence/*, api/tools/*, api/config (server)
-  src/components/         orb/, globe/, intelligence/, shell/, tools/
+  src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/
   src/stores/              zustand: orb-store, ui-store, tool-store (persisted), toast-store
   src/lib/                  intelligence/ (server-only real+mock providers), tools/
-                            (registry, approval, run-tool, client), logger, demo sequence
+                            (registry, approval, run-tool, client), voice/ (WebRTC
+                            session, controller, pinned API config), logger, demo
 packages/types/          Shared Zod schemas — the contract every backend conforms to
 packages/config/         Shared ESLint base for non-Next.js packages
 docs/                    IMPLEMENTATION_PLAN, ARCHITECTURE, SECURITY, PROJECT_STATE
@@ -95,11 +96,21 @@ Fix errors before moving on — don't leave a phase half-verified.
 - Never silently replace an architectural decision (state management, provider
   pattern, monorepo layout) without updating `docs/ARCHITECTURE.md` and
   `docs/PROJECT_STATE.md` to say why.
+- Never assume a fast-moving third-party API (OpenAI Realtime is the current
+  example) still matches training-data knowledge — it has already renamed an
+  endpoint once. Check current docs (WebFetch) before changing `lib/voice/config.ts`
+  or the request shapes in `app/api/voice/session/route.ts`.
+- Never report a feature as "done"/"verified" if it hasn't actually been exercised
+  end-to-end. Voice (Phase 4) is built but its live WebRTC connection has not been —
+  see `docs/PROJECT_STATE.md` for exactly what's confirmed vs. assumed. Report status
+  with that same honesty going forward.
 
 ## Current status
 
-Phase 0, Phase 1, a first Phase 3 increment (real crypto + US weather with zero
-setup; news + equities/FX activate once their key is set), and Phase 6 (real local
-Mac tools with a working permission/approval engine) are complete and verified — see
-`docs/PROJECT_STATE.md` for the full breakdown and known issues. Voice and AI
-orchestration aren't wired up yet.
+Phase 0, Phase 1, Phase 3 (real crypto/weather with zero setup; real news and
+equities/FX with the user's keys, verified live), and Phase 6 (real local Mac tools
+with a working permission/approval engine, verified) are complete and verified.
+Phase 4 (voice, OpenAI Realtime) is built and wired up but **not yet verified**
+against a real `OPENAI_API_KEY` — see `docs/PROJECT_STATE.md` for the full breakdown,
+what's confirmed vs. assumed, and known issues. AI orchestration (Phase 5) isn't
+wired up yet.
