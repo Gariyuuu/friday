@@ -29,7 +29,10 @@ apps/dashboard/         The whole product today (Next.js 16 App Router)
                             function-calling layer), memory/ (server-only
                             node:sqlite), gestures/ (client-only MediaPipe hand
                             tracking), desktop/ (Tauri-only global shortcut +
-                            autostart, no-op outside Tauri), logger, demo
+                            autostart, no-op outside Tauri), vm/ (server-only:
+                            SSH-based command channel to the Phase 9 cloud VM —
+                            see docs/ARCHITECTURE.md's "Data flow (VM task
+                            execution)"), logger, demo
 packages/types/          Shared Zod schemas — the contract every backend conforms to
 packages/config/         Shared ESLint base for non-Next.js packages
 docs/                    IMPLEMENTATION_PLAN, ARCHITECTURE, SECURITY, PROJECT_STATE
@@ -95,7 +98,12 @@ Fix errors before moving on — don't leave a phase half-verified.
   notification, system_status) executed via `execFile` with argument arrays —
   never a shell string, never a generic `shell()` call. If a new tool is ever
   needed, it gets its own strictly-Zod-validated route handler, not a parameter that
-  reaches a shell.
+  reaches a shell. `run_on_vm` (Phase 9) is the one deliberate exception, and only on
+  the VM, never the Mac: it runs a user-approved command inside an ephemeral,
+  network-isolated-by-default Docker container on the cloud VM, dispatched via a
+  forced SSH command that can't run anything else. `riskLevel: "critical"`, no
+  "Always Allow" — every call needs individual approval. Don't extend this pattern
+  to Mac-side execution.
 - Never bypass the tool-permission system (`stores/tool-store.ts`, implemented) —
   always call tools through `lib/tools/run-tool.ts`, never `fetch("/api/tools/...")`
   directly from a component. "ask"-mode tools require explicit approval every time
@@ -109,9 +117,15 @@ Fix errors before moving on — don't leave a phase half-verified.
   wrappers the command palette uses — same approval modal, same audit log,
   regardless of trigger source.
 - Never provision paid cloud infrastructure (VM rental, hosted DB, etc.) without the
-  user's explicit go-ahead on provider and cost — Phase 8/9 is blocked on this, by
-  design, not an oversight. The user was asked directly and said "not yet" —
-  don't restart this without asking again.
+  user's explicit go-ahead on provider and cost. Precedent: Phase 8's droplet was
+  only created after asking the user to pick a provider and budget via
+  AskUserQuestion, and after they separately supplied a real DigitalOcean token —
+  the same standard applies to any future infra decision (resizing, a second VM,
+  a different provider), not just the first one.
+- Never write a cloud provider's API token (DigitalOcean or otherwise) to any file,
+  including `.env.local` — it's provisioning-only and more powerful than anything
+  else in this repo's threat model. Use it in-memory for the session that needs
+  it, then let it go; ask the user again if more provisioning is needed later.
 - Remember that `pnpm desktop:dev` opens a real window on the user's actual,
   possibly-in-use MacBook desktop (confirmed this session — it's not an isolated
   sandbox). Clean up test processes afterward rather than leave stray windows.
@@ -130,15 +144,19 @@ Fix errors before moving on — don't leave a phase half-verified.
 
 ## Current status
 
-Every phase except 8/9 (cloud VM — user was asked, said "not yet") is complete and
-either verified live or verified as thoroughly as this environment allows, not
-just built: Phase 5 orchestration now also includes web/video search
+Every phase now has a live, verified vertical slice, including Phase 9 (cloud
+VM): a real DigitalOcean droplet, hardened, running a real SSH-based sandboxed
+command-execution channel (`run_on_vm`, the first `critical`-risk tool, wired
+through the same permission/approval/audit-log path as everything else). What's
+left in Phase 9 is breadth (browser automation, richer task types), not the
+foundation. Phase 5 orchestration also includes web/video search
 (`search_web`/`search_video`) and `focus_event`; Phase 10 (gestures, opt-in webcam
 hand-tracking) is built with zero errors through every part of the pipeline that
-doesn't require a real human hand; Phase 11 native packaging now also has a menu
-bar tray icon, a real system-wide global shortcut (found and fixed a real Tauri
-capability-permission bug), and auto-launch at login. Multiple real bugs across
-sessions were found and fixed by actually testing against real APIs/real
-launches, not caught by review alone — see `docs/PROJECT_STATE.md` for the full
-breakdown. `desktop:build` (distributable signed bundle) still not attempted —
-needs a bundled Node server sidecar, a separate problem from `desktop:dev`.
+doesn't require a real human hand; Phase 11 native packaging has a menu bar tray
+icon, a real system-wide global shortcut (⌥+V — found and fixed a real Tauri
+capability-permission bug), auto-launch at login, and a launchable
+`~/Applications/FRIDAY.app` wrapper. Multiple real bugs across sessions were
+found and fixed by actually testing against real APIs/real launches/a real VM,
+not caught by review alone — see `docs/PROJECT_STATE.md` for the full breakdown.
+`desktop:build` (distributable signed bundle) still not attempted — needs a
+bundled Node server sidecar, a separate problem from `desktop:dev`.

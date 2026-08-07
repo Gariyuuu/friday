@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.10.0 — Voice shortcut changed to ⌥+V, launchable app
+
+- Voice activation shortcut changed from ⌥+Space to ⌥+V (in-app listener, Tauri
+  global shortcut, and all UI copy/docs updated together).
+- Added `~/Applications/FRIDAY.app`, a thin wrapper bundle (real icon, real
+  Info.plist) that launches `pnpm desktop:dev` via a login shell so it picks up
+  the normal PATH — a real double-clickable, Spotlight-searchable app today,
+  short of the full standalone Tauri bundle (`desktop:build`, still not
+  attempted — needs a bundled Node server sidecar). Verified via `open` (the
+  real LaunchServices path), not just running the script directly.
+
+## 0.9.0 — Phase 8/9: Real Cloud VM, First Sandboxed Execution Channel
+
+- **Phase 8**: provisioned and hardened a real DigitalOcean droplet
+  (`friday-vm-agent`, $6/mo, Ubuntu 26.04 LTS) after the user approved provider
+  and budget. Non-root user, key-only SSH, default-deny firewall, unattended
+  security updates, Docker. Found and left alone an unrelated pre-existing
+  droplet on the same account from a different project.
+- **Phase 9 first vertical slice**: an SSH-based command channel (not a public
+  HTTPS gateway — no new open port needed, reuses SSH's hardened auth) lets the
+  Mac send a task to the VM and get a real result back. A dedicated key
+  (separate from the human admin key) is forced via `authorized_keys` to only
+  run `/opt/friday-agent/dispatch.sh`, which executes the task inside an
+  ephemeral, network-isolated-by-default, resource-limited Docker container.
+  **Verified the forced-command restriction actually holds** (tried to run a
+  different command over the same key, server ignored it) **and that network
+  isolation is real** (DNS resolution itself fails inside the container without
+  explicit opt-in).
+- Registered as `run_on_vm`, the first tool to reach `riskLevel: "critical"` —
+  goes through the same permission/approval/audit-log path as every other tool,
+  with one addition: the approval modal now shows a distinct warning banner and
+  omits "Always Allow" for critical-risk tools, so every VM execution needs
+  individual approval, no exceptions. Closes a gap flagged (but not built) in
+  `docs/SECURITY.md` since Phase 6.
+- Verified end-to-end through the actual Next.js route (not just a raw SSH
+  test): real 200 response, real VM output, zero errors in the server log.
+- Not built yet: browser automation, richer task types beyond a single shell
+  command.
+
 ## 0.8.0 — Geocoded News Events
 
 - Real headlines now get real globe markers. `lib/intelligence/sources/geocode.ts`

@@ -91,21 +91,28 @@ filesystem-wide read, no automatic AppleScript — see spec §22 for the exact a
 (open_application, open_url, volume, notification, system_status, and
 explicitly-user-selected file/clipboard reads only).
 
-## Phase 8 infrastructure status (2026-08-07)
+## Phase 8/9 status (2026-08-07)
 
-A real VM now exists: DigitalOcean droplet `friday-vm-agent` (nyc1, 1 vCPU/1GB,
-Ubuntu 26.04 LTS). Baseline OS hardening is applied and verified over a real SSH
-session: non-root user only, SSH password auth + root login disabled (key-only),
-UFW default-deny-incoming with only SSH allowed, unattended security upgrades,
-Docker installed. **This is infrastructure, not the security model below** — no
-gateway service, no authentication scheme, no sandboxed task execution exists on
-it yet. The threat model in this section still describes the target architecture
-for Phase 9, which must be built to match it (not referenced as if already true)
-before the VM does anything beyond existing as a hardened, idle host. The
-DigitalOcean API token used to provision it was used in-memory only for that
-session and was not written to any file, including this repo.
+A real VM exists (DigitalOcean droplet `friday-vm-agent`, nyc1, 1 vCPU/1GB,
+Ubuntu 26.04 LTS) with baseline OS hardening verified over a real SSH session,
+**and** a first real task-execution channel is live on top of it — see
+`docs/PROJECT_STATE.md`'s Phase 9 section for the full build. Short version:
+SSH-based (not HTTPS/token, a deliberate deviation from this section's original
+sketch — see PROJECT_STATE for why), a dedicated key forced (verified, not just
+configured) to only run `/opt/friday-agent/dispatch.sh`, which executes tasks
+inside network-isolated-by-default, resource-limited, `--cap-drop=ALL` Docker
+containers — never on the host. Registered as a `riskLevel: "critical"` tool
+requiring individual approval every time (no "Always Allow" for critical tools —
+a UI change made specifically because this was the first tool to reach that
+level). The DigitalOcean API token used to provision the droplet was used
+in-memory only and was not written to any file, including this repo.
 
-## Threat model (for Phase 9 — the VM gateway/agent software — must be built to match this, not just referenced)
+**Still open**: browser automation, richer task types, and the specific mitigations
+in the table below that go beyond what a generic sandboxed-command-runner
+provides (e.g. "malicious downloaded file" handling assumes a browser automation
+capability that doesn't exist yet).
+
+## Threat model (target architecture — re-check each row against what's actually built before assuming it holds)
 
 | Threat | Mitigation |
 |---|---|
@@ -116,24 +123,33 @@ session and was not written to any file, including this repo.
 | Leaked API token | Tokens are short-lived where the provider supports it, scoped per-service, and never logged (`lib/logger.ts` redacts anything matching `key|token|secret|password|authorization`). |
 | Manipulated browser content directing tool use | Tool permissions originate only from USER + SYSTEM POLICY, never from content the agent reads (spec §77). |
 
-## Connection security (Phase 8 requirement, not yet built)
+## Connection security (Phase 9, built via SSH instead of HTTPS/WSS — see status above)
 
-HTTPS/WSS only, authenticated requests, short-lived tokens, rate limiting, schema
-validation (Zod) on every message crossing the Mac↔VM boundary, timeouts, and payload
-size limits. VM payloads are never trusted blindly regardless of source.
+Original target was HTTPS/WSS + bearer tokens; what's actually built uses SSH
+key auth instead (see Phase 8/9 status above for why) — same properties, different
+mechanism: authenticated (SSH key, forced-command restricted), encrypted in
+transit (SSH transport), schema-validated (Zod on the Mac-side route, `jq`-parsed
+JSON on the VM side, never a shell string built from the payload), timed out
+(both a VM-side `timeout` and a Mac-side `execFile` timeout backstop), and payload
+size bounded (`z.string().max(4000)` on the command). Rate limiting is not
+implemented — a personal single-user tool with mandatory per-call approval (see
+Tool risk model below) has a natural rate limit (a human has to click Allow each
+time) that a rate limiter would be redundant with today; revisit if that changes.
 
-## Tool risk model (implemented, Phase 6)
+## Tool risk model (implemented, Phase 6; critical tier added Phase 9)
 
 Every tool declares `riskLevel` (low/medium/high/critical) and
 `requiresConfirmation` (`lib/tools/registry.ts`). Tools with `requiresConfirmation`
-(`open_application`, `open_url`) default to "ask" and show the exact approval prompt
-from spec §23 (action description, "Requested by: FRIDAY", Allow Once / Always Allow
-This Tool / Deny) before executing — implemented in
+(`open_application`, `open_url`, `run_on_vm`) default to "ask" and show the
+approval prompt from spec §23 (action description, "Requested by: FRIDAY", Allow
+Once / Always Allow This Tool / Deny) before executing — implemented in
 `components/tools/ToolApprovalModal.tsx` and `lib/tools/run-tool.ts`. Read-only or
 harmless tools (`set_volume`, `show_notification`, `system_status`) default to
 "allow". Every call — approved or denied — is written to the audit log
 (`ToolRunRecord[]` in `stores/tool-store.ts`), visible in Settings → Tools → Recent
-Activity. No tool currently reaches "high" or "critical" risk; if one is added later,
-it should not be settable to "allow" without a distinct, more serious warning than
-the current dropdown gives for low/medium tools (not yet built — today's UI treats
-all risk levels' permission control the same way).
+Activity. **`run_on_vm` (Phase 9) is the first tool to reach "critical"** — for
+critical-risk tools specifically, the approval modal shows a distinct red-bordered
+warning banner and omits the "Always Allow" option entirely, so every VM execution
+requires an individual, explicit approval with no way to pre-authorize future
+calls. "high"-risk tools still get the same treatment as low/medium (no tool has
+reached "high" yet — revisit if one does).

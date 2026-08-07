@@ -1,12 +1,79 @@
 # Project State
 
-Last updated: 2026-08-07 (session 4, part 5 — Phase 8 infrastructure stood up: a
-real DigitalOcean droplet is live and hardened. Phase 9, the actual gateway/agent
-software that lets the Mac talk to it, is NOT built yet — see below).
+Last updated: 2026-08-07 (session 4, part 6 — Phase 9's first real vertical slice
+is live: the Mac can send a command to the cloud VM over an SSH-based channel and
+get a genuine sandboxed-execution result back, verified end-to-end through the
+actual app, not just a raw SSH test. Browser automation and richer task types are
+still open — see Phase 9 section below).
 
 Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
-## Phase 8 — Cloud VM infrastructure (droplet live, agent software not started)
+## Phase 9 — VM gateway/agent software (first vertical slice live)
+
+**Architecture decision: SSH-based command channel, not a public HTTPS
+gateway.** `docs/SECURITY.md`'s original threat model sketch assumed
+HTTPS/WSS + bearer tokens; built it as SSH instead because: the droplet's
+firewall is already default-deny with only SSH open (Phase 8), so this needs
+zero new open ports and zero new attack surface; SSH's key-based auth is
+already a hardened, battle-tested primitive, cheaper to lean on correctly than
+to hand-roll a token/TLS scheme from scratch; and a personal single-user tool
+with exactly one client (the Mac) and one server (the VM) doesn't need the
+flexibility a general HTTP API buys. Documented here as a deliberate deviation
+from the original sketch, per this project's own rule about not silently
+replacing an architectural decision.
+
+- **A dedicated keypair, not the admin key**: generated a new ed25519 keypair
+  (`~/.friday/vm_agent_key{,.pub}`, outside the repo, same pattern as the local
+  memory DB) solely for this automated channel — kept separate from the human
+  admin SSH key already on the account, so a leak of one doesn't imply the other.
+- **Forced command, verified not just assumed**: the new key's `authorized_keys`
+  entry on the VM (`friday` user) is `command="/opt/friday-agent/dispatch.sh",
+  no-pty,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-user-rc`.
+  **Actually tested the restriction holds**: SSH'd in requesting `whoami` as the
+  command and confirmed the server ignored it and ran `dispatch.sh` anyway (it
+  correctly replied `{"ok":false,"error":"command is required"}` since no JSON
+  was piped in) — proof this is enforced server-side, not just documented intent.
+- **`/opt/friday-agent/dispatch.sh`** (bash + jq, no VM-side Node needed): reads
+  one JSON task from stdin (`{command, timeoutSeconds?, allowNetwork?, image?}`),
+  runs it inside an ephemeral Docker container — `--network=none` unless
+  `allowNetwork:true`, `--memory=256m --cpus=0.5 --pids-limit=64 --read-only
+  --cap-drop=ALL --security-opt=no-new-privileges` — captures stdout/stderr/exit
+  code, writes one JSON result to stdout. Never runs anything on the host itself.
+- **Verified network isolation is real, not assumed**: ran `wget` inside a task
+  with default settings and got `wget: bad address 'api.ipify.org'` — DNS
+  resolution itself fails under `--network=none`, confirmed live, not inferred
+  from the flag's documentation.
+- **Mac side**: `lib/vm/vm-client.ts` (server-only) — `execFile`'s the system
+  `ssh` binary with a fixed argument array (never a shell string), pipes the
+  JSON task via stdin, parses the JSON result from stdout, with a hard timeout
+  backstop above the VM-side one. `app/api/tools/run-on-vm/route.ts` — Zod
+  validates the request, calls the client, returns the result.
+- **Registered as a real tool, not a side channel**: `run_on_vm` added to
+  `lib/tools/registry.ts` (`executionLocation: "vm"`, `riskLevel: "critical"` —
+  the first tool to actually reach this level) and to voice's tool definitions
+  in `friday-tools.ts`. Goes through the exact same `runTool()` → permission →
+  approval → audit-log path as every local tool — no separate, less-restricted
+  path for VM execution, same invariant maintained since Phase 5.
+- **Closed a previously-flagged gap**: `docs/SECURITY.md`'s tool risk model
+  section had noted "no tool currently reaches high or critical risk; if one is
+  added later it should not be settable to allow without a distinct warning —
+  not yet built." Since `run_on_vm` is exactly that tool, built it now:
+  `ToolApprovalModal` shows a red-bordered "⚠ Critical — runs on the cloud VM"
+  banner for critical-risk approvals and **hides the "Always Allow" button
+  entirely** for them — every single VM execution requires an individual,
+  explicit approval, no exceptions, unlike lower-risk tools.
+- **Verified end-to-end through the real app, not just a direct SSH test**:
+  `POST /api/tools/run-on-vm` with `{"command": "echo ... && date"}` returned a
+  real 200 with the VM's actual real-time output, confirmed against the dev
+  server log (`ran vm task` → real `date` output → zero errors).
+- **Not built yet**: browser automation (headless Chromium in a container —
+  meaningfully more setup than a generic command runner), richer task types
+  beyond a single shell command, a Quick-Actions UI entry (currently only
+  reachable via voice — a deliberate scope cut this round, not an oversight),
+  and the DigitalOcean API token being needed again for any future resize/
+  destroy/snapshot (it was never persisted, by design — see Phase 8 below).
+
+## Phase 8 — Cloud VM infrastructure (droplet live, hardened, in use by Phase 9)
 
 User approved provider (DigitalOcean) and budget (~$5-10/mo, always-on) this
 session, then provided a real DO personal access token. What's actually done:
@@ -32,15 +99,9 @@ session, then provided a real DO personal access token. What's actually done:
   file) — grep-confirmed no local file contains it. If more provisioning is
   needed later (resize, destroy, snapshot), it'll need to be provided again or a
   scoped-down token created for that purpose specifically.
-- **Not built yet — this is the real remaining work, not a formality**: the
-  actual gateway service that runs on this VM and lets the Mac send it tasks
-  (authenticated request/response per `docs/SECURITY.md`'s already-written threat
-  model), the sandboxed execution environment for those tasks (Docker containers,
-  not raw host access), browser automation tooling, and the Mac-side client that
-  talks to it. The droplet is infrastructure — it does nothing on its own yet.
-  This is a substantial software build, not a follow-up tweak.
-
-Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
+- **What runs on it now**: see the Phase 9 section above — `/opt/friday-agent/
+  dispatch.sh`, real Docker task execution, the SSH-based command channel. No
+  longer inert.
 
 ## Completed
 
@@ -153,6 +214,19 @@ Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 - `pnpm desktop:build` (a distributable, optionally code-signed `.app`/`.dmg`)
   still not attempted — needs a bundled Node server sidecar, a different, bigger
   problem than `desktop:dev`. `desktop:dev` remains sufficient for daily use.
+- **Real launchable app, added session 4 part 5**: `~/Applications/FRIDAY.app` —
+  a thin wrapper bundle (`Info.plist` + a shell script `CFBundleExecutable`
+  reusing the real generated `.icns` icon), not a true standalone Tauri build.
+  Its executable runs `pnpm desktop:dev` via a login+interactive shell (so it
+  picks up the user's normal PATH the way a GUI launch otherwise wouldn't), logs
+  to `~/Library/Logs/FRIDAY/launch.log`, and shows a native alert if the launch
+  dies within the first 8 seconds. **Verified via `open` (the same LaunchServices
+  path Finder uses, not just running the script directly)**: real window opened,
+  confirmed as a genuine foreground process via `osascript`/System Events, real
+  page loads in the log. Killed after verifying, per this project's rule about
+  not leaving stray windows on the user's live desktop. First launch needs a
+  right-click → Open to clear Gatekeeper's unsigned-app warning, same as any
+  unsigned local build.
 
 **Phase 3 completion — web search & video search**
 
@@ -315,29 +389,26 @@ with zero extra infrastructure.
 
 ## Current
 
-Every phase except Phase 9 (the VM gateway/agent software) is either live and
-verified end-to-end, or verified as thoroughly as this environment allows. Search
-and video keys are now live and verified (see below). Phase 8's infrastructure
-(the droplet) is live and hardened — Phase 9's actual software is the next real
-build, in progress next.
+Every phase has a live, verified vertical slice, including Phase 9 now (the SSH
+command channel + sandboxed Docker execution + critical-risk approval flow — see
+above). What remains in Phase 9 is breadth, not the foundation: browser
+automation and richer task types beyond a single shell command.
 
 ## Next
 
-- **Phase 9 (VM gateway/agent software)**: the real next build. The droplet from
-  Phase 8 exists but runs nothing FRIDAY-specific yet. Needs: an authenticated
-  gateway service on the VM (per `docs/SECURITY.md`'s threat model — short-lived
-  tokens, schema-validated requests, no reverse control back to the Mac), a
-  Docker-sandboxed task execution environment (not raw host access), the Mac-side
-  client/tool that sends it work, and browser automation tooling. Substantial,
-  multi-step build — will be verified against the real droplet as it goes, same
-  discipline as every other phase.
+- **Phase 9 breadth**: browser automation (headless Chromium in a container —
+  the next meaningful capability, more setup than the generic command runner
+  that exists now), richer task types, a Quick-Actions UI entry for `run_on_vm`
+  (currently voice-only).
 - **User verification needed**: confirm gesture recognition feels accurate with a
   real hand in front of the camera (Settings → Input), and click the autostart
   toggle once inside the real `pnpm desktop:dev` window if you ever want it on
   (currently off by default, which you confirmed is what you want).
 - `pnpm desktop:build` (distributable, optionally signed `.app`/`.dmg`) — needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev`. Only
-  relevant if/when sharing the app with someone else matters.
+  relevant if/when sharing the app with someone else matters. A wrapper `.app`
+  (`~/Applications/FRIDAY.app`, launches `desktop:dev` under the hood) exists as
+  a lighter-weight stand-in — see below.
 
 ## Known issues
 

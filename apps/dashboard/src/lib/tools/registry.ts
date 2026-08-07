@@ -47,6 +47,15 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     requiresConfirmation: false,
     timeoutMs: 3000,
   },
+  {
+    name: "run_on_vm",
+    description:
+      "Run a shell command in an isolated, network-off-by-default Docker container on the cloud VM (Phase 9)",
+    executionLocation: "vm",
+    riskLevel: "critical",
+    requiresConfirmation: true,
+    timeoutMs: 60000,
+  },
 ];
 
 /** Low-risk, no-confirmation tools default to "allow"; everything else asks first. */

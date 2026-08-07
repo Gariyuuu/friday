@@ -1,6 +1,6 @@
 # Architecture
 
-## Today (Phase 0/1/3/4/5/6/7/10/11)
+## Today (Phase 0/1/3/4/5/6/7/9/10/11)
 
 Everything lives in `apps/dashboard`, a single Next.js 16 App Router application —
 still no separate VM. Real data, local Mac tools, and memory flow through
@@ -186,12 +186,28 @@ headline typically appears a poll or two after the headline itself does, not
 instantly; this is a deliberate tradeoff (never make the user wait on an LLM call)
 over a made-up placeholder location.
 
+### Data flow (VM task execution — Phase 9)
+
+Command palette or voice's `run_on_vm` tool → `lib/tools/client.ts`'s `runOnVm()`
+→ `runTool()` (same permission/approval/audit-log path as every other tool —
+critical-risk tools additionally skip the "Always Allow" option, see
+`docs/SECURITY.md`) → `POST /api/tools/run-on-vm` → Zod validation →
+`lib/vm/vm-client.ts` → `execFile`'s the system `ssh` binary (fixed argument
+array, JSON task piped via stdin, never a shell string) → the VM's
+`authorized_keys` forces the connection to run `/opt/friday-agent/dispatch.sh`
+regardless of what command SSH was asked for → that script runs the task inside
+an ephemeral, network-isolated-by-default, resource-limited Docker container →
+one JSON result flows back over the same SSH connection → parsed and returned
+to the caller. No public port opened on the VM for this at all — the firewall
+stays exactly as locked down as Phase 8 left it (SSH only). See
+`docs/PROJECT_STATE.md`'s Phase 9 section for why SSH was chosen over a public
+HTTPS gateway.
+
 ## Where things go next (see `docs/IMPLEMENTATION_PLAN.md` for full phasing)
 
-- **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started; the
-  user was asked directly this session and said "not yet." Needs a paid VM
-  provider chosen and a reviewed threat model before any code, per spec §24-27 and
-  `docs/SECURITY.md`, whenever it does happen.
+- **Phase 9 breadth**: browser automation (headless Chromium in a container) and
+  richer task types beyond a single sandboxed shell command — the channel and
+  permission model exist now, this is about what gets sent over it.
 - **Phase 11 finishing touch**: `desktop:build` (distributable bundle) needs a
   bundled Node server sidecar, a materially bigger problem than `desktop:dev` —
   not attempted, only relevant once/if sharing the app with someone else matters.

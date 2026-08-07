@@ -1,5 +1,12 @@
 import { APP_ALLOWLIST } from "@/lib/tools/registry";
-import { getSystemStatus, openApplication, openUrl, setVolume, showNotification } from "@/lib/tools/client";
+import {
+  getSystemStatus,
+  openApplication,
+  openUrl,
+  runOnVm,
+  setVolume,
+  showNotification,
+} from "@/lib/tools/client";
 import { useMemoryStore } from "@/stores/memory-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -136,6 +143,17 @@ export function getFridayToolDefinitions(): FridayToolSchema[] {
         required: ["query"],
       },
     },
+    {
+      type: "function",
+      name: "run_on_vm",
+      description:
+        "Run a shell command in an isolated, sandboxed Docker container on FRIDAY's cloud VM — no network access by default, resource-limited, ephemeral. Requires explicit user approval every time (critical risk, never auto-allowed). Use for tasks that shouldn't run on the user's own Mac.",
+      parameters: {
+        type: "object",
+        properties: { command: { type: "string" } },
+        required: ["command"],
+      },
+    },
   );
 
   if (!memoryEnabled) return base;
@@ -222,6 +240,8 @@ export async function executeFridayTool(name: string, argsJson: string): Promise
       const res = await fetch(`/api/video?q=${encodeURIComponent(args.query as string)}`);
       return res.json();
     }
+    case "run_on_vm":
+      return runOnVm(args.command as string);
     case "remember": {
       const res = await fetch("/api/memory", {
         method: "POST",

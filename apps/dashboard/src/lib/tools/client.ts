@@ -36,6 +36,15 @@ export function showNotification(title: string, body: string) {
   );
 }
 
+export function runOnVm(command: string, options?: { timeoutSeconds?: number; allowNetwork?: boolean }) {
+  return runTool("run_on_vm", () =>
+    postJson<{ ok: boolean; stdout: string; stderr: string; exitCode: number | null; error?: string }>(
+      "/api/tools/run-on-vm",
+      { command, ...options },
+    ),
+  );
+}
+
 export function getSystemStatus() {
   return runTool("system_status", async () => {
     const res = await fetch("/api/tools/system-status");

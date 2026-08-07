@@ -1,4 +1,4 @@
-import type { ToolPermissionMode, ToolRunRecord } from "@friday/types";
+import type { ToolPermissionMode, ToolRiskLevel, ToolRunRecord } from "@friday/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DEFAULT_TOOL_PERMISSIONS } from "@/lib/tools/registry";
@@ -7,6 +7,7 @@ export interface PendingApproval {
   id: string;
   toolName: string;
   description: string;
+  riskLevel: ToolRiskLevel;
 }
 
 const MAX_HISTORY = 50;

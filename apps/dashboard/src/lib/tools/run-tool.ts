@@ -21,7 +21,12 @@ export async function runTool<T>(toolName: string, execute: () => Promise<T>): P
 
   if (mode === "ask") {
     const id = crypto.randomUUID();
-    store.setPendingApproval({ id, toolName, description: definition.description });
+    store.setPendingApproval({
+      id,
+      toolName,
+      description: definition.description,
+      riskLevel: definition.riskLevel,
+    });
     const decision = await requestApproval(id);
     store.setPendingApproval(null);
 
