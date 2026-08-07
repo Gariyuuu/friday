@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 — Orchestration, Memory, and an Installable App
+
+- **Phase 5 (orchestration)**: voice now has real function-calling access to
+  FRIDAY's capabilities — local Mac tools (through the same permission/approval
+  engine as the command palette), live intelligence data, dashboard control, and
+  memory. Found and fixed two real bugs via live testing: (1) `connect()` resolved
+  before the WebRTC data channel was actually open, silently dropping the tool
+  registration with no error anywhere; (2) after fixing that, `session.update`
+  turned out to require a `type` field the docs example didn't show. Verified
+  end-to-end: asked FRIDAY for battery percentage via synthesized speech, watched
+  it call `get_system_status` for real, and got back "21 percent, charging" —
+  cross-checked against `pmset -g batt` and confirmed exact.
+- **Phase 7 (memory)**: local SQLite via Node's built-in `node:sqlite` (no external
+  dependency) at `~/.friday/memory.db`. `remember`/`recall` tools let FRIDAY save
+  and search memory during a voice conversation. Settings → Memory is a real UI —
+  enable/disable toggle, search, delete, clear all.
+- App icon + web manifest: replaced the leftover create-next-app defaults with a
+  real generated icon and an installable manifest so Safari's "Add to Dock" gives a
+  genuine standalone app window on macOS.
+- Bumped `@types/node` to match the actual Node runtime (was `^20`, predates
+  `node:sqlite`'s types which arrived in Node 22+).
+
 ## 0.4.0 — Voice Verified Live
 
 - Applied user's real `OPENAI_API_KEY`, moved default voice model to

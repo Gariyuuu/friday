@@ -1,11 +1,12 @@
 # Security model
 
-## Current state (Phase 0/1/3/4/6)
+## Current state (Phase 0/1/3/4/5/6/7)
 
-Still no VM, no user data storage/memory. Three real security surfaces now exist:
-server-side API keys (news, markets), real local tool execution (Phase 6), and voice
-(Phase 4, an ephemeral-credential pattern). All are live and worth understanding, not
-just "future work."
+Still no VM. Four real security surfaces exist: server-side API keys (news,
+markets), real local tool execution (Phase 6), voice (Phase 4, an
+ephemeral-credential pattern), and now voice-triggered tool-calling (Phase 5) plus
+local memory storage (Phase 7). All are live and worth understanding, not just
+"future work."
 
 - `.env.example` documents every credential. Nothing in the repo is a real secret.
   `.env` / `.env.local` are gitignored.
@@ -38,11 +39,21 @@ just "future work."
   WebRTC connection to OpenAI. This is the same shape as the tool/intelligence
   boundary (real secret stays server-side) applied to a case where the client still
   needs *some* credential to talk to a third party directly.
+- **Voice tool-calling doesn't bypass permissions** (Phase 5): when the realtime
+  model calls `open_application`/`open_url`/etc., `friday-tools.ts` routes through
+  the exact same `lib/tools/client.ts` → `runTool()` path as the command palette —
+  same approval modal, same audit log. There is no separate, less-restricted
+  execution path for voice-triggered actions.
+- **Memory is local-only** (Phase 7): SQLite at `~/.friday/memory.db`, outside the
+  repo, never transmitted anywhere except back to the browser via
+  `/api/memory` when the Settings UI reads it. The `remember`/`recall` tools are
+  only offered to the model when memory is enabled — disabling it in Settings
+  removes the tools from the next session's tool list entirely, not just hides a UI
+  element.
 - The settings UI shows every *unbuilt* integration as "Not configured" rather than a
-  working-looking control (spec §67) — this still applies to memory and the VM
-  connection. Voice was tested against the real API this session and confirmed
-  working (real WebRTC handshake, real speech detection) — see
-  `docs/PROJECT_STATE.md`.
+  working-looking control (spec §67) — this still applies to the VM connection.
+  Voice, orchestration, and memory were all tested against real systems this session
+  and confirmed working — see `docs/PROJECT_STATE.md`.
 
 ## The model this project is committed to (governs every future phase)
 

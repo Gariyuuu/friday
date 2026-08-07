@@ -1,0 +1,176 @@
+import { APP_ALLOWLIST } from "@/lib/tools/registry";
+import { getSystemStatus, openApplication, openUrl, setVolume, showNotification } from "@/lib/tools/client";
+import { useMemoryStore } from "@/stores/memory-store";
+import { useUiStore } from "@/stores/ui-store";
+
+/**
+ * The realtime model's function-calling schema (JSON Schema, per OpenAI's Realtime
+ * API — verified against live docs). This is what turns voice from a plain chatbot
+ * into actual control over FRIDAY: local Mac tools (through the SAME permission/
+ * approval engine as the command palette — voice doesn't get a bypass), live
+ * intelligence data, UI control, and memory.
+ */
+export function getFridayToolDefinitions() {
+  const memoryEnabled = useMemoryStore.getState().enabled;
+
+  const base = [
+    {
+      type: "function",
+      name: "open_application",
+      description: "Launch an allowlisted macOS application",
+      parameters: {
+        type: "object",
+        properties: { appName: { type: "string", enum: [...APP_ALLOWLIST] } },
+        required: ["appName"],
+      },
+    },
+    {
+      type: "function",
+      name: "open_url",
+      description: "Open a URL in the default browser",
+      parameters: {
+        type: "object",
+        properties: { url: { type: "string" } },
+        required: ["url"],
+      },
+    },
+    {
+      type: "function",
+      name: "show_notification",
+      description: "Show a macOS notification",
+      parameters: {
+        type: "object",
+        properties: { title: { type: "string" }, body: { type: "string" } },
+        required: ["title", "body"],
+      },
+    },
+    {
+      type: "function",
+      name: "set_volume",
+      description: "Set the system output volume, 0-100",
+      parameters: {
+        type: "object",
+        properties: { level: { type: "number" } },
+        required: ["level"],
+      },
+    },
+    {
+      type: "function",
+      name: "get_system_status",
+      description: "Get current CPU load, memory usage, and battery status",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      type: "function",
+      name: "get_markets",
+      description:
+        "Get current market prices: crypto (BTC, ETH) always, plus S&P 500/NASDAQ/USD-JPY if configured",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      type: "function",
+      name: "get_weather_alerts",
+      description: "Get active severe weather alerts (US coverage only)",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      type: "function",
+      name: "get_news",
+      description: "Get the latest breaking news headlines",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      type: "function",
+      name: "open_intelligence_dashboard",
+      description:
+        "Open the Global Intelligence dashboard on screen — the world map, news, markets, and signals panels",
+      parameters: { type: "object", properties: {} },
+    },
+  ];
+
+  if (!memoryEnabled) return base;
+
+  return [
+    ...base,
+    {
+      type: "function",
+      name: "remember",
+      description: "Save a fact, preference, or note to long-term memory for future conversations",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string" },
+          category: { type: "string", enum: ["preference", "project", "episodic"] },
+        },
+        required: ["content", "category"],
+      },
+    },
+    {
+      type: "function",
+      name: "recall",
+      description: "Search long-term memory for relevant facts, preferences, or notes",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" } },
+        required: ["query"],
+      },
+    },
+  ];
+}
+
+interface IntelligenceEnvelope<T> {
+  data: T;
+}
+
+export async function executeFridayTool(name: string, argsJson: string): Promise<unknown> {
+  const args = argsJson ? (JSON.parse(argsJson) as Record<string, unknown>) : {};
+
+  switch (name) {
+    case "open_application":
+      return openApplication(args.appName as (typeof APP_ALLOWLIST)[number]);
+    case "open_url":
+      return openUrl(args.url as string);
+    case "show_notification":
+      return showNotification(args.title as string, args.body as string);
+    case "set_volume":
+      return setVolume(args.level as number);
+    case "get_system_status":
+      return getSystemStatus();
+    case "get_markets": {
+      const res = await fetch("/api/intelligence/markets");
+      return ((await res.json()) as IntelligenceEnvelope<unknown>).data;
+    }
+    case "get_weather_alerts": {
+      const res = await fetch("/api/intelligence/weather");
+      return ((await res.json()) as IntelligenceEnvelope<unknown>).data;
+    }
+    case "get_news": {
+      const res = await fetch("/api/intelligence/events");
+      const body = (await res.json()) as IntelligenceEnvelope<
+        { title: string; category: string; summary: string }[]
+      >;
+      return body.data.slice(0, 8).map((e) => ({
+        title: e.title,
+        category: e.category,
+        summary: e.summary,
+      }));
+    }
+    case "open_intelligence_dashboard":
+      useUiStore.getState().setMode("intelligence");
+      return { ok: true };
+    case "remember": {
+      const res = await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: args.category, content: args.content }),
+      });
+      return res.json();
+    }
+    case "recall": {
+      const res = await fetch(`/api/memory?q=${encodeURIComponent(String(args.query ?? ""))}`);
+      return res.json();
+    }
+    default:
+      throw new Error(`unknown tool: ${name}`);
+  }
+}

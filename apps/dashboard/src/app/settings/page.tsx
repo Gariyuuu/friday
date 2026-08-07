@@ -4,6 +4,8 @@ import type { ToolPermissionMode } from "@friday/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { TOOL_REGISTRY } from "@/lib/tools/registry";
+import type { MemoryCategory, MemoryRecord } from "@/lib/memory/db";
+import { useMemoryStore } from "@/stores/memory-store";
 import { useOrbStore } from "@/stores/orb-store";
 import { useToolStore } from "@/stores/tool-store";
 import { useUiStore, type GraphicsQuality } from "@/stores/ui-store";
@@ -212,12 +214,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {section === "memory" && (
-            <div className="max-w-md space-y-4">
-              <h2 className="text-xs uppercase tracking-widest text-text-dim">Memory</h2>
-              <NotConfigured setting="Long-term memory" phase="Phase 7" />
-            </div>
-          )}
+          {section === "memory" && <MemorySection />}
 
           {section === "tools" && <ToolsSection />}
 
@@ -367,6 +364,118 @@ function ToolsSection() {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+const CATEGORY_LABEL: Record<MemoryCategory, string> = {
+  preference: "Preference",
+  project: "Project",
+  episodic: "Episodic",
+};
+
+function MemorySection() {
+  const enabled = useMemoryStore((s) => s.enabled);
+  const setEnabled = useMemoryStore((s) => s.setEnabled);
+  const [memories, setMemories] = useState<MemoryRecord[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const load = (q?: string) => {
+    setLoading(true);
+    fetch(q ? `/api/memory?q=${encodeURIComponent(q)}` : "/api/memory")
+      .then((res) => res.json())
+      .then((body: { memories: MemoryRecord[] }) => setMemories(body.memories))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetch("/api/memory")
+      .then((res) => res.json())
+      .then((body: { memories: MemoryRecord[] }) => setMemories(body.memories))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const remove = (id: string) => {
+    fetch(`/api/memory?id=${id}`, { method: "DELETE" }).then(() => load(query));
+  };
+
+  const clearAll = () => {
+    fetch("/api/memory?category=all", { method: "DELETE" }).then(() => load(query));
+  };
+
+  return (
+    <div className="max-w-lg space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs uppercase tracking-widest text-text-dim">Memory</h2>
+        <label className="flex items-center gap-2 text-xs text-text-dim">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+          Long-term memory enabled
+        </label>
+      </div>
+      <p className="text-xs text-text-faint">
+        FRIDAY can save facts, preferences, and notes during a voice conversation
+        (the <code className="text-text-dim">remember</code>/
+        <code className="text-text-dim">recall</code> tools) and recall them later.
+        Stored locally in SQLite at <code className="text-text-dim">~/.friday/memory.db</code> —
+        never sent anywhere except back to you. Turning this off removes the tools
+        from the next voice session; it doesn&apos;t delete what&apos;s already saved.
+      </p>
+
+      <div className="flex gap-2">
+        <input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            load(e.target.value || undefined);
+          }}
+          placeholder="Search memories…"
+          className="flex-1 rounded-md border border-border bg-surface-raised px-3 py-1.5 text-sm text-text outline-none placeholder:text-text-faint"
+        />
+        {memories.length > 0 && (
+          <button
+            onClick={clearAll}
+            className="rounded-md border border-border px-3 py-1.5 text-xs text-text-dim transition-colors hover:text-danger"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-text-faint">Loading…</p>
+      ) : memories.length === 0 ? (
+        <p className="text-sm text-text-faint">
+          No memories yet. Ask FRIDAY to remember something during a voice conversation.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {memories.map((m) => (
+            <li
+              key={m.id}
+              className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm text-text">{m.content}</p>
+                <p className="text-mono-status text-[10px] uppercase text-text-faint">
+                  {CATEGORY_LABEL[m.category]} · {new Date(m.createdAt).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => remove(m.id)}
+                className="shrink-0 text-text-faint transition-colors hover:text-danger"
+                aria-label="Delete memory"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

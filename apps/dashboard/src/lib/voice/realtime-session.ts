@@ -86,6 +86,18 @@ export class OpenAIRealtimeSession {
     }
     const answerSdp = await sdpRes.text();
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+
+    // setRemoteDescription resolving does NOT guarantee the data channel is open —
+    // there's a brief handshake gap. Without this wait, a session.update sent
+    // immediately after connect() (e.g. to register tools) can silently no-op
+    // against send()'s readyState check, and the model ends up with no tools at
+    // all with no error raised anywhere. Found via a live test where the model
+    // claimed it had no way to check battery status despite the tool existing.
+    if (dc.readyState !== "open") {
+      await new Promise<void>((resolve) => {
+        dc.addEventListener("open", () => resolve(), { once: true });
+      });
+    }
   }
 
   private setupAnalyser(stream: MediaStream) {

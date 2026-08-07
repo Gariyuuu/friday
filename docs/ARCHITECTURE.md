@@ -1,11 +1,12 @@
 # Architecture
 
-## Today (Phase 0/1/3/4/6)
+## Today (Phase 0/1/3/4/5/6/7)
 
 Everything lives in `apps/dashboard`, a single Next.js 16 App Router application —
-still no separate VM. Real data and local Mac tools flow through server-side route
-handlers; voice now does too (an ephemeral-token route, then a direct browser↔OpenAI
-WebRTC connection — no proxy needed for the audio itself).
+still no separate VM. Real data, local Mac tools, and memory flow through
+server-side route handlers; voice connects directly to OpenAI over WebRTC (no
+audio proxy) but now also has function-calling access back into all of FRIDAY's
+real capabilities — that's the orchestration layer (Phase 5).
 
 ```
 apps/dashboard/src/
@@ -16,6 +17,7 @@ apps/dashboard/src/
     api/tools/*/               Route handlers: open-application, open-url, volume,
                                 notification, system-status (server)
     api/voice/session/         Mints an ephemeral OpenAI Realtime token (server)
+    api/memory/                 CRUD over the local SQLite memory store (server)
     api/config/                Reports which integrations are configured (booleans only)
   components/
     orb/                      The holographic AI core (Three.js / React Three Fiber)
@@ -40,7 +42,10 @@ apps/dashboard/src/
     voice/
       config.ts                  Pinned model/endpoint constants — see the comment there before touching
       realtime-session.ts        Client-side WebRTC session (RTCPeerConnection, mic, remote-audio analyser)
-      voice-controller.ts        Singleton session + server-event → orb-store wiring
+      voice-controller.ts        Singleton session + server-event → orb-store wiring + function-call dispatch
+      friday-tools.ts            Tool definitions (JSON Schema) + executeFridayTool() dispatch — the orchestration layer
+    memory/
+      db.ts                      server-only: node:sqlite wrapper, ~/.friday/memory.db
     logger.ts                    Structured, redacting logger
     demo.ts                      Demo-only sequence exercising every orb state
 
@@ -99,21 +104,34 @@ real amplitude into `orb-store` → a data channel (`"oai-events"`) carries JSON
 process (Next.js server) is only in the loop for the initial token mint — audio
 itself never round-trips through it.
 
+### Data flow (orchestration — Phase 5)
+
+After `connectVoice()` establishes the WebRTC session, it sends a `session.update`
+event registering `friday-tools.ts`'s tool definitions. When the model decides to
+call one (its own judgment, `tool_choice: "auto"` — not guaranteed every turn), a
+`response.done` event's `output` array contains a `function_call` item
+(`name`/`call_id`/`arguments`). `voice-controller.ts` dispatches it through
+`executeFridayTool()`, which either calls a local-tool client wrapper (going through
+the *same* `runTool()` permission/approval path as the command palette — voice
+doesn't bypass it), fetches live intelligence data, flips `ui-store`'s mode, or
+reads/writes memory. The result is sent back via `conversation.item.create`
+(`function_call_output`) + `response.create`, and the model continues speaking with
+the real result in hand. This is the actual "voice → intent → tool/data → spoken
+answer" loop the whole rest of the app was built to support.
+
 ## Where things go next (see `docs/IMPLEMENTATION_PLAN.md` for full phasing)
 
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events (so real headlines get a globe marker, not just crypto/weather).
-- **Phase 4**: verified live against the real API this session (real WebRTC
-  connection, real speech detection) — a real request-shape bug was found and
-  fixed in the process. What's left: an actual human conversation test, which
-  only the user can do. See `docs/PROJECT_STATE.md`.
-- **Phase 5 (orchestration)**: an intent router deciding fast-path (direct tool/API
-  call) vs. agent-path (VM job) — see spec §29. This is what will actually start
-  using the AI provider keys the Settings page already reports on.
-- **Phase 8 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started. Per
-  spec §24-27 and `docs/SECURITY.md`, this needs its threat model reviewed before any
-  code is written, and the VM must never receive credentials that grant it control
-  back over the Mac.
+- **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started, and
+  deliberately not attempted without the user's explicit go-ahead (needs a paid VM
+  provider chosen and a reviewed threat model first, per spec §24-27 and
+  `docs/SECURITY.md`).
+- **Phase 10 (gestures)**: MediaPipe webcam hand-tracking, opt-in only — no cost,
+  reasonable next autonomous step.
+- **Phase 11 (native packaging)**: Tauri — real menu bar presence, system-wide
+  global shortcut, auto-launch, a proper `.app` bundle. What exists today (web
+  manifest, "Add to Dock") is a lighter stand-in, not this.
 
 ## Why no `packages/ui` / `packages/protocol` / `packages/security` yet
 
