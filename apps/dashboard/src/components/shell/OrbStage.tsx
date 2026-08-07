@@ -34,7 +34,7 @@ export function OrbStage() {
       transition={{ duration: 0.4 }}
       className="flex h-full flex-col items-center justify-center gap-6 px-6"
     >
-      <Orb className="h-[min(60vh,480px)] w-[min(60vh,480px)]" />
+      <Orb className="size-[min(60vh,480px,85vw)]" />
       <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
         {connected ? `VOICE // ${voiceStatus.toUpperCase()}` : STATE_COPY[orbState]}
       </p>

@@ -29,7 +29,7 @@ export default function Home() {
 
 function OrbStageWrapper() {
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 overflow-y-auto">
       <OrbStage />
     </div>
   );
@@ -37,7 +37,7 @@ function OrbStageWrapper() {
 
 function IntelligenceModeWrapper() {
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 overflow-y-auto">
       <IntelligenceMode />
     </div>
   );

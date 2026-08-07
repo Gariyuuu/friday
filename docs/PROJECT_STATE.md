@@ -1,10 +1,9 @@
 # Project State
 
 Last updated: 2026-08-06 (session 3 — real keys applied, Phase 3 verified fully
-live, Phase 4 voice built).
+live, Phase 4 voice built, mobile viewport bugs found and fixed).
 
-Repo: https://github.com/Gariyuuu/friday (pushed through session 2; session 3's
-work is committed locally — push it along with everything else next).
+Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
 ## Completed
 
@@ -69,6 +68,30 @@ notes) — permission engine, approval modal, audit log, 5 tools via `execFile`.
   curl), and the whole app still builds/lints/typechecks/tests clean with this code
   present. Per this project's own rules, this is reported as "built, not verified" —
   not as "done." First real test needs an `OPENAI_API_KEY` with Realtime API access.
+- Voice model defaults to `gpt-realtime-2.1-mini` (not the full model) — confirmed
+  current pricing puts it at ~1/3 the cost ($10/$20 vs $32/$64 per 1M audio tokens),
+  matching the user's explicit "cheaper" preference. Bump to the full model in
+  `lib/voice/config.ts` if quality isn't good enough once actually tested.
+
+**Mobile/narrow-viewport audit** (same session — found and fixed two real bugs,
+neither hypothetical):
+- The orb's canvas was sized `min(60vh, 480px)` with no viewport-width term, so on
+  any window narrower than 480px it rendered at full size and was silently clipped
+  by an `overflow-hidden` ancestor (not visible as a scrollbar or DOM overflow —
+  just cropped). Fixed: `size-[min(60vh,480px,85vw)]` in `OrbStage.tsx`.
+- Bigger issue: the root layout (`app/page.tsx`) used `overflow-hidden` everywhere
+  with no scroll fallback, built for a desktop dashboard that fits one screen. On a
+  narrow viewport, Intelligence Mode's single-column stacked panels (globe + 4
+  panels) run ~3150px tall against a ~800px viewport — everything past the fold was
+  completely unreachable, not just visually awkward. Fixed by adding
+  `overflow-y-auto` to both mode wrappers; confirmed via Playwright that the full
+  content (weather alerts, category tally, media panel) is now reachable by
+  scrolling. This also matters on a narrow *desktop* window, not just phones, which
+  is the case spec §40 actually asks for (phone support itself isn't a stated
+  requirement — desktop/external-monitor is; the underlying bug affects both).
+- Not fixed (minor, functional but cramped): the Settings page's fixed 192px sidebar
+  eats half a phone-width screen. Low priority — Settings is a desktop-first surface
+  per the spec's own responsive-display scope.
 
 ## Current
 
@@ -87,8 +110,9 @@ Nothing in progress. Everything above is either fully verified live (Phase 3, Ph
 - **Phase 3 completion**: web search tool, video search, geocoding for live news
   events (still open, lower priority — see prior session notes).
 - **Phase 2 finishing touches**: auto-focus globe on narrated event (now unblocked —
-  Phase 4 exists — but still needs Phase 5 to know *what* to focus on), mobile
-  viewport audit.
+  Phase 4 exists — but still needs Phase 5 to know *what* to focus on). Mobile
+  viewport audit done this session (see below); Settings sidebar-on-phone remains a
+  known minor gap, not prioritized.
 
 ## Known issues
 
