@@ -3,6 +3,17 @@ import { getSystemStatus, openApplication, openUrl, setVolume, showNotification 
 import { useMemoryStore } from "@/stores/memory-store";
 import { useUiStore } from "@/stores/ui-store";
 
+interface FridayToolSchema {
+  type: "function";
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, { type: string; enum?: readonly string[] }>;
+    required?: string[];
+  };
+}
+
 /**
  * The realtime model's function-calling schema (JSON Schema, per OpenAI's Realtime
  * API — verified against live docs). This is what turns voice from a plain chatbot
@@ -10,10 +21,10 @@ import { useUiStore } from "@/stores/ui-store";
  * approval engine as the command palette — voice doesn't get a bypass), live
  * intelligence data, UI control, and memory.
  */
-export function getFridayToolDefinitions() {
+export function getFridayToolDefinitions(): FridayToolSchema[] {
   const memoryEnabled = useMemoryStore.getState().enabled;
 
-  const base = [
+  const base: FridayToolSchema[] = [
     {
       type: "function",
       name: "open_application",
@@ -86,7 +97,46 @@ export function getFridayToolDefinitions() {
         "Open the Global Intelligence dashboard on screen — the world map, news, markets, and signals panels",
       parameters: { type: "object", properties: {} },
     },
+    {
+      type: "function",
+      name: "focus_event",
+      description:
+        "Focus a specific news event on the globe and detail panel — call this when narrating or discussing a particular story from get_news, using its id",
+      parameters: {
+        type: "object",
+        properties: { eventId: { type: "string" } },
+        required: ["eventId"],
+      },
+    },
   ];
+
+  base.push(
+    {
+      type: "function",
+      name: "search_web",
+      description:
+        "Search the web for current information not covered by other tools. If not configured, says so — never invent results.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          depth: { type: "string", enum: ["quick", "standard", "deep"] },
+        },
+        required: ["query"],
+      },
+    },
+    {
+      type: "function",
+      name: "search_video",
+      description:
+        "Search YouTube for videos relevant to a topic or news story. If not configured, says so — never invent results.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" } },
+        required: ["query"],
+      },
+    },
+  );
 
   if (!memoryEnabled) return base;
 
@@ -147,9 +197,10 @@ export async function executeFridayTool(name: string, argsJson: string): Promise
     case "get_news": {
       const res = await fetch("/api/intelligence/events");
       const body = (await res.json()) as IntelligenceEnvelope<
-        { title: string; category: string; summary: string }[]
+        { id: string; title: string; category: string; summary: string }[]
       >;
       return body.data.slice(0, 8).map((e) => ({
+        id: e.id,
         title: e.title,
         category: e.category,
         summary: e.summary,
@@ -158,6 +209,19 @@ export async function executeFridayTool(name: string, argsJson: string): Promise
     case "open_intelligence_dashboard":
       useUiStore.getState().setMode("intelligence");
       return { ok: true };
+    case "focus_event":
+      useUiStore.getState().focusEvent(args.eventId as string);
+      return { ok: true };
+    case "search_web": {
+      const params = new URLSearchParams({ q: args.query as string });
+      if (args.depth) params.set("depth", args.depth as string);
+      const res = await fetch(`/api/search?${params}`);
+      return res.json();
+    }
+    case "search_video": {
+      const res = await fetch(`/api/video?q=${encodeURIComponent(args.query as string)}`);
+      return res.json();
+    }
     case "remember": {
       const res = await fetch("/api/memory", {
         method: "POST",

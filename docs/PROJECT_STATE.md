@@ -1,13 +1,50 @@
 # Project State
 
-Last updated: 2026-08-07 (session 4, part 2 — Phase 11 native packaging via Tauri,
-verified with a real compiled binary launching a real window on the user's Mac).
+Last updated: 2026-08-07 (session 4, part 3 — Phase 10 (gestures), Phase 11
+completion (global shortcut, tray, autostart), and the rest of Phase 3 (web/video
+search) + Phase 2/5 (focus_event) all built, all real bugs found via live testing
+already fixed). Everything except Phase 8/9 (cloud VM — user said "not yet") is now
+either verified live or verified as thoroughly as this environment allows.
 
 Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
 ## Completed
 
-**Phase 11 — Native Packaging (Tauri)**
+**Phase 10 — Gestures (MediaPipe hand-tracking, opt-in)**
+
+- `lib/gestures/hand-tracker.ts`: wraps `@mediapipe/tasks-vision`'s HandLandmarker.
+  Model/CDN URLs verified against Google's live docs (2026-08-07), not recalled —
+  this ecosystem also renames things (`@mediapipe/tasks-vision`'s own `latest` dist
+  tag briefly pointed at a 2023 build mid-session before an active nightly channel
+  got promoted).
+- `lib/gestures/gesture-detector.ts`: converts raw 21-point hand landmarks into
+  pinch/open-palm/two-hand-distance — spec §9's gesture set.
+- `lib/gestures/gesture-controller.ts`: drives the Globe by dispatching *synthetic
+  pointer/wheel events* at its canvas rather than reimplementing camera math — a
+  pinch+drag becomes pointerdown/move/up, a changing two-hand distance becomes a
+  wheel event, reusing OrbitControls' own well-tested drag/zoom handling. Open palm
+  calls `resetGlobeView()` (a module-level registry `Globe.tsx` populates with its
+  live OrbitControls ref, exposing just `.reset()` — avoids depending on
+  `three-stdlib`'s types directly, which isn't a direct dependency of this app).
+- `stores/gesture-store.ts` (persisted `enabled` toggle, transient `cameraActive`),
+  `components/gestures/CameraActiveIndicator.tsx` (always visible whenever the
+  webcam is actually in use, per spec §9), `components/gestures/GestureController.tsx`
+  (lifecycle — never opens the camera just because `enabled` was true on a past
+  visit; only reacts to the toggle changing). Settings → Input has the real toggle.
+- Off by default. Nothing touches the camera until the user turns it on.
+- **Honest testing limitation, stated upfront rather than discovered late**: unlike
+  voice (where Chromium's fake-audio-capture + synthesized speech gave genuine
+  end-to-end verification), there's no equivalent way to fake a convincing hand in
+  front of a fake camera. What *was* verified via Playwright + Chromium's
+  fake-device flags: the full pipeline initializes with zero errors (confirmed
+  MediaPipe's WASM+model load from CDN, real `getUserMedia` permission flow, real
+  `detectForVideo` calls on synthetic video frames with no crashes), the
+  camera-active indicator appears/disappears correctly, and toggling off cleanly
+  stops the camera (confirmed the indicator element is removed from the DOM and
+  status flips to "off"). What is **not** verified: actual gesture recognition
+  accuracy against a real hand — that needs the user.
+
+**Phase 11 — Native Packaging (Tauri), completion**
 
 - Installed Rust (via rustup) and `@tauri-apps/cli`/`@tauri-apps/api` — none of this
   was present before this session.
@@ -44,13 +81,85 @@ Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
   different Space, since a full-screen capture from this session showed the
   user's own browser instead). Killed the test process afterward rather than
   leave a stray window.
-- **Not done**: `pnpm desktop:build` (a distributable, optionally code-signed
-  `.app`/`.dmg`) — deferred. `desktop:dev` is sufficient for the user's stated
-  goal ("let me test it out"); a signed distributable is a different, later need
-  (only relevant if this ever gets shared with someone else). No system-wide
-  global shortcut plugin wired up yet either (⌥+Space still only works while the
-  window has focus, same as the browser version) — a reasonable Tauri
-  `global-shortcut` plugin addition for later, not attempted this session.
+- **System-wide global shortcut, added this round**: `@tauri-apps/plugin-global-shortcut`
+  registers real OS-level ⌥+Space (works even when FRIDAY isn't focused), sharing
+  the exact same `toggleVoice()` logic as the in-browser `keydown` listener —
+  `lib/desktop/global-shortcut.ts` no-ops outside Tauri (`"__TAURI_INTERNALS__" in
+  window` check) so a plain web deployment never touches Tauri-only code.
+  **Real bug caught by live testing**: `tauri add global-shortcut`'s scaffolded
+  `global-shortcut:default` capability does NOT include the `register` command —
+  first launch failed with `global-shortcut.register not allowed. Permissions
+  associated with this command: global-shortcut:allow-register`. Fixed by adding
+  `global-shortcut:allow-register`/`allow-unregister`/`allow-is-registered`
+  explicitly to `capabilities/desktop.json`. Relaunched, confirmed clean (no error,
+  real requests continued flowing).
+- **Menu bar presence, added this round**: a real tray icon (`TrayIconBuilder` in
+  `src-tauri/src/lib.rs`) with Show FRIDAY / Quit menu items, left-click
+  shows+focuses the window. Required adding the `tray-icon` feature to the `tauri`
+  Cargo dependency. Uses `app.default_window_icon().unwrap()` — verified this
+  doesn't panic (the app kept running and served real requests after `setup()`
+  completed, which requires the whole builder chain including this line to have
+  succeeded; a panic there would have crashed the process before ever serving a
+  request). Didn't chase a screenshot of the actual tray icon pixel — attempted a
+  targeted menu-bar-corner screencapture, got a black/empty crop from a wrong
+  coordinate guess, and judged the log-based proof (no crash, kept serving
+  requests) sufficient rather than keep guessing screen coordinates.
+- **Auto-launch at login, added this round**: `@tauri-apps/plugin-autostart`,
+  wrapped in `lib/desktop/autostart.ts` (same Tauri-detection no-op guard). Real
+  toggle in Settings → General, plus an honest "Running as: Native app / Browser
+  tab" status line and a note that the global shortcut is system-wide only in the
+  native app. **Testing limitation**: verified the plugin initializes without
+  crashing at app launch, but could NOT verify the actual enable/disable call
+  succeeds — that requires clicking a checkbox inside the real Tauri webview
+  itself, which isn't reachable via Playwright (Playwright drives a plain Chromium
+  browser where `window.__TAURI_INTERNALS__` doesn't exist, so the toggle
+  correctly renders its "not available in browser" fallback instead of the real
+  control — confirming the guard works, but not exercising the actual plugin call).
+  This needs the user to click it once for full confidence.
+- `pnpm desktop:build` (a distributable, optionally code-signed `.app`/`.dmg`)
+  still not attempted — needs a bundled Node server sidecar, a different, bigger
+  problem than `desktop:dev`. `desktop:dev` remains sufficient for daily use.
+
+**Phase 3 completion — web search & video search**
+
+- `lib/intelligence/sources/search.ts` (server-only): Tavily (`api.tavily.com/search`,
+  Bearer auth, `search_depth: quick|standard|deep`). Returns `null` — not `[]` — when
+  `SEARCH_API_KEY` is unset, so callers can distinguish "not configured" from
+  "genuinely no results."
+- `lib/intelligence/sources/video.ts` (server-only): YouTube Data API v3
+  `search.list`. Same `null`-vs-empty-array distinction for `YOUTUBE_API_KEY`.
+- `app/api/search` and `app/api/video` route handlers: honest `501` with a plain-
+  English "not configured" message when the relevant key is missing — never a fake
+  200 with empty/fabricated results.
+- Wired into voice orchestration as `search_web`/`search_video` tools (see Phase 5
+  section above and `friday-tools.ts`) and into the UI: `EventDetailPanel`'s
+  `RelatedVideos` component fetches `/api/video?q=<story title>` per focused story,
+  checks for `501` to hide the section entirely rather than show an error, and
+  `MediaPanel` checks `/api/config`'s `intelligence.video` flag for its idle-state
+  copy.
+- **Verified**: both routes checked live with keys unset — confirmed real `501`
+  responses with the expected honest messages, no fabricated data, no console
+  errors. Full success-path verification (actual Tavily/YouTube results) needs the
+  user to add `SEARCH_API_KEY`/`YOUTUBE_API_KEY` — flagged in `.env.example`, not
+  blocking anything else.
+- Geocoding for live news events (so they get real globe markers instead of
+  approximate/mock coordinates) remains open — lower priority, not started.
+
+**Phase 2/5 — `focus_event` tool**
+
+- New voice tool `focus_event({eventId})` in `friday-tools.ts`, dispatching to
+  `useUiStore.getState().focusEvent(eventId)` — lets FRIDAY actually point at the
+  globe marker/detail panel for a story it's discussing mid-conversation, instead of
+  only being able to talk about news in the abstract.
+- Required also returning `id` from `get_news`'s tool result (previously only
+  `title`/`category`/`summary`) so the model has something to pass to `focus_event`
+  on a follow-up turn.
+- **Verified**: exercised via curl-equivalent direct store call and confirmed the
+  globe/detail panel respond to `focusEvent` the same way a manual click does (same
+  code path, `ui-store.ts`'s existing `focusEvent` action, not a new one). Full
+  voice-triggered round trip (ask FRIDAY about a headline, have it call
+  `focus_event`) follows the same `tool_choice: "auto"` non-determinism already
+  documented in Phase 5 — mechanism proven, not guaranteed on every phrasing.
 
 **Phase 0/1/3/4/6**: see prior session notes below this section header's history in
 git — unchanged this session except where noted. Monorepo, orb, globe, dashboard,
@@ -146,41 +255,29 @@ with zero extra infrastructure.
 
 ## Current
 
-Nothing in progress. Phases 0/1/3/4/5/6/7 are live and verified end-to-end
-(including real tool calls with real data confirmed against ground truth), and
-Phase 11 (native packaging) is verified with a real compiled app launching a real
-window. User explicitly declined Phase 8/9 (cloud VM) for now — asked, answered
-"not yet."
+Nothing in progress. Every phase except Phase 8/9 (cloud VM, user said "not yet")
+is either live and verified end-to-end, or verified as thoroughly as this
+environment allows with an honest note on what still needs the user (gesture
+accuracy against a real hand, the autostart toggle click, and success-path search/
+video results once those API keys are added).
 
 ## Next
 
 - **Phase 8/9 (cloud VM + VM tools)**: user said "not yet" this session when asked
   directly. Don't restart this without asking again — needs a provider/cost
   decision and a reviewed threat model regardless.
-- **Phase 11 completion**: `desktop:build` (distributable signed app) not attempted
-  — only relevant once/if sharing the app with someone else matters. System-wide
-  global shortcut (Tauri's `global-shortcut` plugin) so ⌥+Space works without the
-  window being focused — currently it only works while focused, same as the
-  browser version.
-- **Phase 10 (gestures)**: MediaPipe webcam hand-tracking, opt-in only. Buildable
-  with no external cost. Not started this session — prioritized Phase 11 instead
-  since it more directly served the user's explicit "app on the Mac" request. One
-  real caveat for whoever picks this up: unlike voice (which could be tested with
-  Chromium's fake-audio-capture + synthesized speech), there's no equivalent easy
-  way to verify actual hand-gesture *recognition accuracy* without a real camera
-  and a real hand — Chromium's fake-video-capture flag exists but a synthetic
-  video convincing enough for MediaPipe's hand landmarker is a much higher bar
-  than a WAV file was for speech. Expect to verify the permission flow, no-crash
-  behavior, and camera indicator programmatically, but the actual gesture-mapping
-  quality needs the user.
-- **Phase 3 completion**: web search tool, video search, geocoding for live news
-  events so they get globe markers (still open, lower priority).
-- **Phase 2 finishing touch**: auto-focus globe on the event FRIDAY is currently
-  narrating — now actually meaningful since Phase 5 exists (the model could call a
-  `focus_event` tool), not built yet.
-- Extend orchestration tools further: `search_web`, `focus_event(eventId)`, per-tool
-  memory categories the model chooses more precisely, are natural next additions to
-  `lib/voice/friday-tools.ts` once the above land.
+- **User action needed, not blocking anything else**: add `SEARCH_API_KEY`
+  (Tavily) and/or `YOUTUBE_API_KEY` to `.env.local` to light up real web/video
+  search results — both currently work correctly in their "not configured" state.
+- **User verification needed**: click the autostart toggle once inside the real
+  `pnpm desktop:dev` window (untestable via Playwright — see Phase 11 notes above)
+  and confirm gesture recognition feels accurate with a real hand in front of the
+  camera (Settings → Input).
+- `pnpm desktop:build` (distributable, optionally signed `.app`/`.dmg`) — needs a
+  bundled Node server sidecar, a materially bigger problem than `desktop:dev`. Only
+  relevant if/when sharing the app with someone else matters.
+- Geocoding for live news events so they get accurate globe markers — still open,
+  lower priority, not started.
 
 ## Known issues
 
@@ -191,6 +288,13 @@ window. User explicitly declined Phase 8/9 (cloud VM) for now — asked, answere
   `tool_choice: "auto"`) — see Phase 5 notes above. Could tighten with more specific
   tool descriptions or `tool_choice: "required"` for certain phrasings later, but
   that's a product decision, not a bug fix.
+- Gesture recognition *accuracy* against a real hand is unverified in this
+  environment — see Phase 10 notes above. Pipeline itself (camera permission,
+  init, indicator, clean teardown) is verified with zero errors.
+- Autostart enable/disable is unverified beyond "the plugin initializes without
+  crashing" — the actual toggle click needs a real Tauri webview, which Playwright
+  can't reach (it correctly renders the "not available in browser" fallback there
+  instead). Needs one click from the user inside `pnpm desktop:dev`.
 - Carried over: Vitest ESM/CJS config warning (harmless), `next typegen` must run
   before standalone `tsc --noEmit` (already wired into the `typecheck` script).
 
@@ -204,11 +308,23 @@ window. User explicitly declined Phase 8/9 (cloud VM) for now — asked, answere
 - Local memory storage is `~/.friday/memory.db`, not a hosted database — a
   deliberate scope-down from spec §30's eventual Postgres/pgvector target, revisit
   if/when multi-device sync or semantic search over memories actually matters.
+- Added `lib/gestures/` (session 4, part 3) — camera-driven input is entirely
+  client-side (no server-only guarding needed, no secrets involved), but follows
+  the same opt-in/off-by-default and honest-status discipline as everything else.
+  Drives the existing Globe/OrbitControls via synthetic DOM events rather than a
+  parallel camera-control implementation, keeping one source of truth for camera
+  behavior.
+- `src-tauri/` gained a tray icon, global-shortcut plugin, and autostart plugin
+  (session 4, part 3) — all additive to the Phase 11 shell from earlier in the
+  session, no changes to the core "webview points at a live Next.js server"
+  decision.
 
 ## Environment variables added
 
-None new this session — `OPENAI_API_KEY` (already set) now also gates the
-tool-calling capability, not just the base voice connection.
+- `YOUTUBE_API_KEY` and `SEARCH_API_KEY` (Phase 3 completion) — both optional,
+  both already documented with honest-fallback behavior in `.env.example`. No
+  variables added for Phase 10 (gestures, client-side only, no keys) or Phase 11
+  completion (global shortcut/tray/autostart are local OS integrations, no keys).
 
 ## Migration notes
 

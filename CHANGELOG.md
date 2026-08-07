@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.7.0 — Gestures, Menu Bar App, Web/Video Search
+
+- **Phase 10 (gestures)**: opt-in webcam hand-tracking (`@mediapipe/tasks-vision`)
+  drives the globe — pinch+drag to rotate, two-hand pinch distance to zoom, open
+  palm to reset view — by dispatching synthetic pointer/wheel events at the
+  existing OrbitControls rather than reimplementing camera math. Off by default;
+  the camera is never touched until enabled in Settings → Input. Verified the
+  full pipeline (permission flow, WASM+model load, no-crash `detectForVideo`,
+  camera-active indicator, clean teardown) with zero errors; actual gesture-
+  recognition accuracy against a real hand needs the user.
+- **Phase 11 completion**: added a real menu bar tray icon (Show/Quit), a
+  system-wide global shortcut (`@tauri-apps/plugin-global-shortcut`, works even
+  when FRIDAY isn't focused, shares the same `toggleVoice()` as the in-app
+  listener), and auto-launch at login (`@tauri-apps/plugin-autostart`) with a
+  real toggle in Settings → General. **Found and fixed a real bug**: the
+  scaffolded `global-shortcut:default` capability didn't include the `register`
+  command — first launch failed with a permission error; fixed by adding the
+  specific `global-shortcut:allow-register`/`allow-unregister`/
+  `allow-is-registered` permissions to `capabilities/desktop.json`, verified by
+  relaunching clean.
+- **Phase 3 completion**: real web search (Tavily) and video search (YouTube
+  Data API) — both `null`-vs-empty-array aware so "not configured" is never
+  confused with "no results," both honestly return `501` when their key is
+  unset. Wired into voice as `search_web`/`search_video` tools and into
+  `EventDetailPanel`'s related-videos section.
+- **Phase 2/5**: added a `focus_event` voice tool so FRIDAY can point at the
+  specific globe marker/detail panel for a story it's discussing, not just talk
+  about news in the abstract.
+
 ## 0.6.0 — Real Native macOS App (Tauri)
 
 - Installed Rust + Tauri CLI; scaffolded `apps/dashboard/src-tauri/` pointed at a

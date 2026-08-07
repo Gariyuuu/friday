@@ -1,6 +1,6 @@
 # Architecture
 
-## Today (Phase 0/1/3/4/5/6/7/11)
+## Today (Phase 0/1/3/4/5/6/7/10/11)
 
 Everything lives in `apps/dashboard`, a single Next.js 16 App Router application —
 still no separate VM. Real data, local Mac tools, and memory flow through
@@ -8,7 +8,10 @@ server-side route handlers; voice connects directly to OpenAI over WebRTC (no
 audio proxy) but now also has function-calling access back into all of FRIDAY's
 real capabilities — that's the orchestration layer (Phase 5). `src-tauri/` wraps
 this same app in a native macOS shell (Phase 11) — the product is still one
-Next.js app; Tauri just gives it a native window instead of a browser tab.
+Next.js app; Tauri just gives it a native window instead of a browser tab, plus a
+menu bar tray icon, a system-wide global shortcut, and optional auto-launch at
+login. `lib/gestures/` (Phase 10) adds an opt-in, entirely client-side webcam
+hand-tracking input path that drives the same Globe/OrbitControls as mouse input.
 
 ### Why Tauri points at a live server, not a static export
 
@@ -24,7 +27,9 @@ just static files, and hasn't been attempted.
 
 ```
 apps/dashboard/src-tauri/   Tauri v2 native shell — Rust, points at the Next.js
-                              server rather than bundling static files (see above)
+                              server rather than bundling static files (see above).
+                              lib.rs also builds the tray icon (Show/Quit) and
+                              registers the global-shortcut + autostart plugins.
 apps/dashboard/src/
   app/
     "/"                     Orb + Intelligence Mode (client)
@@ -34,6 +39,8 @@ apps/dashboard/src/
                                 notification, system-status (server)
     api/voice/session/         Mints an ephemeral OpenAI Realtime token (server)
     api/memory/                 CRUD over the local SQLite memory store (server)
+    api/search/, api/video/     Web search (Tavily) / video search (YouTube) route
+                                handlers — honest 501 when unconfigured (server)
     api/config/                Reports which integrations are configured (booleans only)
   components/
     orb/                      The holographic AI core (Three.js / React Three Fiber)
@@ -42,13 +49,16 @@ apps/dashboard/src/
     shell/                     Status bar, command palette, orb stage wrapper, toast
     tools/                     Tool approval modal
     voice/                     VoiceActivation (⌥+Space keyboard listener, renders nothing)
-  stores/                      Zustand: orb-store, ui-store, tool-store (persisted), toast-store
+    gestures/                  GestureController (lifecycle), CameraActiveIndicator
+  stores/                      Zustand: orb-store, ui-store, tool-store, memory-store,
+                                gesture-store (persisted where relevant), toast-store
   lib/
     intelligence/
       provider.ts               Shared types (client-safe, no secrets)
       index.ts                  server-only: AutoIntelligenceProvider, picks live vs mock per feed
       sources/                  server-only: weather.ts (NWS), markets.ts (CoinGecko+Twelve Data),
-                                  events.ts (NewsAPI), mock-data.ts (shared demo data)
+                                  events.ts (NewsAPI), search.ts (Tavily), video.ts (YouTube),
+                                  mock-data.ts (shared demo data)
       use-intelligence-data.ts  client hook — fetches /api/intelligence/*, never imports a provider
     tools/
       registry.ts                Tool definitions + app allowlist + default permissions
@@ -58,10 +68,19 @@ apps/dashboard/src/
     voice/
       config.ts                  Pinned model/endpoint constants — see the comment there before touching
       realtime-session.ts        Client-side WebRTC session (RTCPeerConnection, mic, remote-audio analyser)
-      voice-controller.ts        Singleton session + server-event → orb-store wiring + function-call dispatch
+      voice-controller.ts        Singleton session + server-event → orb-store wiring + function-call dispatch,
+                                  toggleVoice() shared with the Tauri global shortcut
       friday-tools.ts            Tool definitions (JSON Schema) + executeFridayTool() dispatch — the orchestration layer
     memory/
       db.ts                      server-only: node:sqlite wrapper, ~/.friday/memory.db
+    gestures/
+      hand-tracker.ts             Wraps @mediapipe/tasks-vision's HandLandmarker
+      gesture-detector.ts         Raw landmarks → pinch/open-palm/two-hand-distance
+      gesture-controller.ts       Dispatches synthetic pointer/wheel events at the globe canvas
+      globe-registry.ts           Module-level registry Globe.tsx populates with its OrbitControls ref
+    desktop/
+      global-shortcut.ts          Tauri-only (no-ops outside Tauri) ⌥+Space registration
+      autostart.ts                Tauri-only autostart enable/disable + isDesktopApp()
     logger.ts                    Structured, redacting logger
     demo.ts                      Demo-only sequence exercising every orb state
 
@@ -129,26 +148,40 @@ call one (its own judgment, `tool_choice: "auto"` — not guaranteed every turn)
 (`name`/`call_id`/`arguments`). `voice-controller.ts` dispatches it through
 `executeFridayTool()`, which either calls a local-tool client wrapper (going through
 the *same* `runTool()` permission/approval path as the command palette — voice
-doesn't bypass it), fetches live intelligence data, flips `ui-store`'s mode, or
-reads/writes memory. The result is sent back via `conversation.item.create`
-(`function_call_output`) + `response.create`, and the model continues speaking with
-the real result in hand. This is the actual "voice → intent → tool/data → spoken
-answer" loop the whole rest of the app was built to support.
+doesn't bypass it), fetches live intelligence data (including `search_web`/
+`search_video`), flips `ui-store`'s mode, focuses a specific globe event
+(`focus_event`), or reads/writes memory. The result is sent back via
+`conversation.item.create` (`function_call_output`) + `response.create`, and the
+model continues speaking with the real result in hand. This is the actual
+"voice → intent → tool/data → spoken answer" loop the whole rest of the app was
+built to support.
+
+### Data flow (gestures — Phase 10)
+
+`GestureController` (mounted in `layout.tsx`, always present but inert) watches
+`gesture-store`'s persisted `enabled` flag. On enable: `hand-tracker.ts` starts a
+`getUserMedia` webcam stream and MediaPipe's HandLandmarker (WASM + model loaded
+from CDN), `gesture-detector.ts` turns each frame's landmarks into a
+pinch/open-palm/two-hand-distance reading, and `gesture-controller.ts` translates
+those into synthetic `PointerEvent`/`WheelEvent`s dispatched directly at the
+Globe's canvas (found via `globe-registry.ts`) — reusing OrbitControls' existing
+drag/zoom handling rather than reimplementing camera math. `CameraActiveIndicator`
+reflects `gesture-store`'s transient `cameraActive` flag whenever the webcam is
+actually in use. Off by default; nothing touches the camera until the user opts in
+from Settings → Input.
 
 ## Where things go next (see `docs/IMPLEMENTATION_PLAN.md` for full phasing)
 
-- **Phase 3 completion**: web search tool, video search, geocoding for live news
-  events (so real headlines get a globe marker, not just crypto/weather).
 - **Phase 8/9 (cloud VM)**: `services/vm-agent` + `infra/docker` — not started; the
   user was asked directly this session and said "not yet." Needs a paid VM
   provider chosen and a reviewed threat model before any code, per spec §24-27 and
   `docs/SECURITY.md`, whenever it does happen.
-- **Phase 10 (gestures)**: MediaPipe webcam hand-tracking, opt-in only — no cost,
-  reasonable next step. Not started.
-- **Phase 11 completion**: `desktop:build` (distributable bundle — needs a Node
-  server sidecar approach, not attempted), a system-wide global shortcut plugin
-  (currently ⌥+Space only works while the window is focused), menu bar presence,
-  auto-launch at login.
+- **Phase 3 finishing touch**: geocoding for live news events so real headlines get
+  an accurate globe marker (currently approximate/mock coordinates) — lower
+  priority, not started.
+- **Phase 11 finishing touch**: `desktop:build` (distributable bundle) needs a
+  bundled Node server sidecar, a materially bigger problem than `desktop:dev` —
+  not attempted, only relevant once/if sharing the app with someone else matters.
 
 ## Why no `packages/ui` / `packages/protocol` / `packages/security` yet
 

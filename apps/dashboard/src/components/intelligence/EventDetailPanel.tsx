@@ -1,11 +1,60 @@
 "use client";
 
-import type { IntelligenceEvent } from "@friday/types";
+import type { IntelligenceEvent, MediaItem } from "@friday/types";
+import { useEffect, useState } from "react";
 import { CATEGORY_COLOR, CATEGORY_LABEL } from "@/lib/intelligence/category-style";
 
 interface EventDetailPanelProps {
   event: IntelligenceEvent | null;
   onClose: () => void;
+}
+
+function RelatedVideos({ query }: { query: string }) {
+  const [videos, setVideos] = useState<MediaItem[] | null>(null);
+  const [configured, setConfigured] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/video?q=${encodeURIComponent(query)}`)
+      .then(async (res) => {
+        if (res.status === 501) {
+          setConfigured(false);
+          return;
+        }
+        const body = (await res.json()) as { results: MediaItem[] };
+        setVideos(body.results);
+      })
+      .catch(() => setVideos([]));
+  }, [query]);
+
+  if (!configured) return null;
+  if (videos === null) {
+    return <p className="text-xs text-text-faint">Searching for related videos…</p>;
+  }
+  if (videos.length === 0) {
+    return <p className="text-xs text-text-faint">No related videos found.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {videos.slice(0, 4).map((video) => (
+        <a
+          key={video.id}
+          href={video.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group overflow-hidden rounded-md border border-border transition-colors hover:border-accent/40"
+        >
+          {video.thumbnailUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={video.thumbnailUrl} alt="" className="aspect-video w-full object-cover" />
+          )}
+          <p className="p-1.5 text-[11px] leading-snug text-text-dim group-hover:text-text">
+            {video.title}
+          </p>
+        </a>
+      ))}
+    </div>
+  );
 }
 
 export function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
@@ -20,7 +69,7 @@ export function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
   }
 
   return (
-    <section className="glass-panel flex flex-1 flex-col gap-3 rounded-lg p-4">
+    <section className="glass-panel flex flex-1 flex-col gap-3 overflow-y-auto rounded-lg p-4">
       <header className="flex items-start justify-between gap-2">
         <div>
           <span
@@ -73,6 +122,13 @@ export function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div>
+        <h3 className="mb-1.5 text-[10px] uppercase tracking-wide text-text-faint">
+          Related Media
+        </h3>
+        <RelatedVideos key={event.id} query={event.title} />
       </div>
     </section>
   );

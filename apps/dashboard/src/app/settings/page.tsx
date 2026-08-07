@@ -2,9 +2,11 @@
 
 import type { ToolPermissionMode } from "@friday/types";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { TOOL_REGISTRY } from "@/lib/tools/registry";
+import { isAutostartEnabled, isDesktopApp, setAutostartEnabled } from "@/lib/desktop/autostart";
 import type { MemoryCategory, MemoryRecord } from "@/lib/memory/db";
+import { useGestureStore } from "@/stores/gesture-store";
 import { useMemoryStore } from "@/stores/memory-store";
 import { useOrbStore } from "@/stores/orb-store";
 import { useToolStore } from "@/stores/tool-store";
@@ -53,6 +55,7 @@ type SectionId =
   | "intelligence"
   | "memory"
   | "tools"
+  | "input"
   | "security"
   | "display"
   | "developer";
@@ -64,6 +67,7 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "intelligence", label: "Intelligence" },
   { id: "memory", label: "Memory" },
   { id: "tools", label: "Tools" },
+  { id: "input", label: "Input" },
   { id: "security", label: "Security" },
   { id: "display", label: "Display" },
   { id: "developer", label: "Developer" },
@@ -124,12 +128,7 @@ export default function SettingsPage() {
         </nav>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {section === "general" && (
-            <div className="max-w-md space-y-4">
-              <h2 className="text-xs uppercase tracking-widest text-text-dim">General</h2>
-              <NotConfigured setting="Startup behavior and global shortcut" phase="Phase 11 (desktop packaging)" />
-            </div>
-          )}
+          {section === "general" && <GeneralSection />}
 
           {section === "voice" && (
             <div className="max-w-md space-y-4">
@@ -217,6 +216,8 @@ export default function SettingsPage() {
           {section === "memory" && <MemorySection />}
 
           {section === "tools" && <ToolsSection />}
+
+          {section === "input" && <InputSection />}
 
           {section === "security" && (
             <div className="max-w-md space-y-4">
@@ -475,6 +476,104 @@ function MemorySection() {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function InputSection() {
+  const enabled = useGestureStore((s) => s.enabled);
+  const setEnabled = useGestureStore((s) => s.setEnabled);
+  const cameraActive = useGestureStore((s) => s.cameraActive);
+
+  return (
+    <div className="max-w-md space-y-4">
+      <h2 className="text-xs uppercase tracking-widest text-text-dim">
+        Input — Gesture Controls
+      </h2>
+      <p className="text-xs text-text-faint">
+        Optional webcam hand-tracking to rotate/zoom the globe: pinch and drag to
+        rotate, bring two hands together or apart to zoom, hold an open palm to
+        reset the view. Off by default — nothing touches the camera until you turn
+        this on. Requires a browser camera permission prompt the first time.
+      </p>
+
+      <label className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+        <span className="text-text-dim">Enable hand-gesture controls</span>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+        />
+      </label>
+
+      <div className="flex items-center gap-2 text-xs">
+        <span className={`h-1.5 w-1.5 rounded-full ${cameraActive ? "bg-danger" : "bg-text-faint"}`} />
+        <span className="text-text-faint">
+          Camera: {cameraActive ? "active" : enabled ? "starting…" : "off"}
+        </span>
+      </div>
+
+      <p className="text-xs text-text-faint">
+        Only works on the globe (Global Intelligence view) today. Hand-tracking
+        runs locally in your browser via MediaPipe — no video ever leaves your
+        machine.
+      </p>
+    </div>
+  );
+}
+
+function noopSubscribe() {
+  return () => {};
+}
+
+function GeneralSection() {
+  // isDesktopApp() never changes mid-session — useSyncExternalStore lets us read
+  // it during render without the set-state-in-effect issue a plain useEffect would hit.
+  const desktop = useSyncExternalStore(noopSubscribe, isDesktopApp, () => false);
+  const [autostart, setAutostart] = useState(false);
+
+  useEffect(() => {
+    isAutostartEnabled().then(setAutostart);
+  }, []);
+
+  return (
+    <div className="max-w-md space-y-4">
+      <h2 className="text-xs uppercase tracking-widest text-text-dim">General</h2>
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-text-dim">Running as</span>
+        <span className="text-mono-status text-xs text-text-faint">
+          {desktop ? "Native app (Tauri)" : "Browser tab"}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-text-dim">Global shortcut (⌥ + Space)</span>
+        <span className="text-mono-status text-xs text-text-faint">
+          {desktop ? "System-wide" : "Only while this tab is focused"}
+        </span>
+      </div>
+
+      {desktop ? (
+        <label className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+          <span className="text-text-dim">Launch FRIDAY at login</span>
+          <input
+            type="checkbox"
+            checked={autostart}
+            onChange={(e) => {
+              setAutostart(e.target.checked);
+              setAutostartEnabled(e.target.checked);
+            }}
+          />
+        </label>
+      ) : (
+        <p className="text-xs text-text-faint">
+          Launch-at-login and the system-wide shortcut are only available in the
+          native app — run <code className="text-text-dim">pnpm desktop:dev</code>{" "}
+          from <code className="text-text-dim">apps/dashboard</code> instead of a
+          browser tab.
+        </p>
       )}
     </div>
   );

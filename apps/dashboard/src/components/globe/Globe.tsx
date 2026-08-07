@@ -3,8 +3,9 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { IntelligenceEvent } from "@friday/types";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type * as THREE from "three";
+import { registerGlobeControls } from "@/lib/gestures/globe-registry";
 import { EventMarker } from "./EventMarker";
 
 const GLOBE_RADIUS = 1.4;
@@ -31,8 +32,12 @@ interface GlobeProps {
 
 /** Interactive globe — rotate/zoom via drag+scroll, click a marker to focus its event. Spec §14. */
 export function Globe({ events, focusedEventId, onSelectEvent, className }: GlobeProps) {
+  useEffect(() => {
+    return () => registerGlobeControls(null);
+  }, []);
+
   return (
-    <div className={className}>
+    <div className={className} data-gesture-target="globe">
       <Canvas camera={{ position: [0, 0.4, 3.6], fov: 45 }} gl={{ antialias: true, alpha: true }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[4, 2, 4]} intensity={0.5} />
@@ -49,6 +54,7 @@ export function Globe({ events, focusedEventId, onSelectEvent, className }: Glob
             />
           ))}
         <OrbitControls
+          ref={(instance) => registerGlobeControls(instance)}
           enablePan={false}
           minDistance={2.2}
           maxDistance={5.5}

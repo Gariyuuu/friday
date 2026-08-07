@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { CameraActiveIndicator } from "@/components/gestures/CameraActiveIndicator";
+import { GestureController } from "@/components/gestures/GestureController";
 import { Toast } from "@/components/shell/Toast";
 import { ToolApprovalModal } from "@/components/tools/ToolApprovalModal";
 import { VoiceActivation } from "@/components/voice/VoiceActivation";
@@ -38,6 +40,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col bg-void text-text">
         {children}
         <VoiceActivation />
+        <GestureController />
+        <CameraActiveIndicator />
         <ToolApprovalModal />
         <Toast />
       </body>

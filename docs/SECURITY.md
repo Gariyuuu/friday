@@ -1,12 +1,13 @@
 # Security model
 
-## Current state (Phase 0/1/3/4/5/6/7)
+## Current state (Phase 0/1/3/4/5/6/7/10/11)
 
-Still no VM. Four real security surfaces exist: server-side API keys (news,
-markets), real local tool execution (Phase 6), voice (Phase 4, an
-ephemeral-credential pattern), and now voice-triggered tool-calling (Phase 5) plus
-local memory storage (Phase 7). All are live and worth understanding, not just
-"future work."
+Still no VM. Real security surfaces: server-side API keys (news, markets, search,
+video), real local tool execution (Phase 6), voice (Phase 4, an
+ephemeral-credential pattern), voice-triggered tool-calling (Phase 5), local
+memory storage (Phase 7), webcam access (Phase 10, gestures), and OS-level
+integrations — global shortcut, tray, autostart (Phase 11). All are live and
+worth understanding, not just "future work."
 
 - `.env.example` documents every credential. Nothing in the repo is a real secret.
   `.env` / `.env.local` are gitignored.
@@ -50,6 +51,20 @@ local memory storage (Phase 7). All are live and worth understanding, not just
   only offered to the model when memory is enabled — disabling it in Settings
   removes the tools from the next session's tool list entirely, not just hides a UI
   element.
+- **Webcam access is local-only and opt-in** (Phase 10): the camera stream feeds
+  MediaPipe's HandLandmarker entirely in the browser (`lib/gestures/`) — no video
+  frame or landmark data is ever sent to a server, logged, or stored. Off by
+  default; nothing touches the camera until the user enables it in Settings →
+  Input, and disabling it stops the stream immediately (confirmed via Playwright:
+  the camera-active indicator is removed from the DOM on toggle-off). The macOS
+  native app declares `NSCameraUsageDescription` in `Info.plist` so the system
+  permission prompt shows a real explanation rather than a blank one.
+- **OS-level integrations are additive, not new trust boundaries** (Phase 11): the
+  global shortcut and autostart plugins run entirely on the Mac (no VM, no new
+  network surface) and are gated the same way as everything else — `isTauri()`
+  guards in `lib/desktop/*` make them no-ops in a plain browser tab, so a web
+  deployment never touches Tauri-only capabilities. The tray icon exposes only
+  Show/Quit, nothing that bypasses the tool-permission engine.
 - The settings UI shows every *unbuilt* integration as "Not configured" rather than a
   working-looking control (spec §67) — this still applies to the VM connection.
   Voice, orchestration, and memory were all tested against real systems this session

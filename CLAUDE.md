@@ -18,15 +18,18 @@ apps/dashboard/         The whole product today (Next.js 16 App Router)
   src-tauri/              Native macOS shell (Tauri v2, Rust) — points at the live
                             Next.js server, doesn't bundle static files (see ARCHITECTURE.md)
   src/app/                routes + api/intelligence/*, api/tools/*, api/voice/*,
-                            api/memory, api/config (server)
-  src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/
-  src/stores/              zustand: orb-store, ui-store, tool-store, memory-store
-                            (all persisted where relevant), toast-store
-  src/lib/                  intelligence/ (server-only real+mock providers), tools/
-                            (registry, approval, run-tool, client), voice/ (WebRTC
-                            session, controller, pinned API config, friday-tools.ts
-                            — the orchestration/function-calling layer), memory/
-                            (server-only node:sqlite), logger, demo
+                            api/memory, api/search, api/video, api/config (server)
+  src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/, gestures/
+  src/stores/              zustand: orb-store, ui-store, tool-store, memory-store,
+                            gesture-store (all persisted where relevant), toast-store
+  src/lib/                  intelligence/ (server-only real+mock providers incl.
+                            search/video), tools/ (registry, approval, run-tool,
+                            client), voice/ (WebRTC session, controller, pinned API
+                            config, friday-tools.ts — the orchestration/
+                            function-calling layer), memory/ (server-only
+                            node:sqlite), gestures/ (client-only MediaPipe hand
+                            tracking), desktop/ (Tauri-only global shortcut +
+                            autostart, no-op outside Tauri), logger, demo
 packages/types/          Shared Zod schemas — the contract every backend conforms to
 packages/config/         Shared ESLint base for non-Next.js packages
 docs/                    IMPLEMENTATION_PLAN, ARCHITECTURE, SECURITY, PROJECT_STATE
@@ -127,11 +130,15 @@ Fix errors before moving on — don't leave a phase half-verified.
 
 ## Current status
 
-Phases 0, 1, 3, 4 (voice), 5 (orchestration/tool-calling), 6 (local tools), 7
-(memory), and 11 (native packaging — `pnpm desktop:dev` launches a real macOS
-window) are all complete and verified live, not just built. Multiple real bugs
-across sessions were found and fixed by actually testing against real APIs/real
+Every phase except 8/9 (cloud VM — user was asked, said "not yet") is complete and
+either verified live or verified as thoroughly as this environment allows, not
+just built: Phase 5 orchestration now also includes web/video search
+(`search_web`/`search_video`) and `focus_event`; Phase 10 (gestures, opt-in webcam
+hand-tracking) is built with zero errors through every part of the pipeline that
+doesn't require a real human hand; Phase 11 native packaging now also has a menu
+bar tray icon, a real system-wide global shortcut (found and fixed a real Tauri
+capability-permission bug), and auto-launch at login. Multiple real bugs across
+sessions were found and fixed by actually testing against real APIs/real
 launches, not caught by review alone — see `docs/PROJECT_STATE.md` for the full
-breakdown. Not started: Phase 8/9 (cloud VM — user was asked, said "not yet"),
-Phase 10 (gestures). Phase 11 is partial: `desktop:dev` works, `desktop:build`
-(distributable bundle) doesn't yet.
+breakdown. `desktop:build` (distributable signed bundle) still not attempted —
+needs a bundled Node server sidecar, a separate problem from `desktop:dev`.

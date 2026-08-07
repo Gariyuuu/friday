@@ -147,3 +147,12 @@ export function toggleVoiceMute(muted: boolean): void {
 export function isVoiceConnected(): boolean {
   return session !== null;
 }
+
+/** Shared by the in-app ⌥+Space listener and the Tauri system-wide global shortcut. */
+export async function toggleVoice(): Promise<void> {
+  if (isVoiceConnected()) {
+    disconnectVoice();
+  } else {
+    await connectVoice();
+  }
+}
