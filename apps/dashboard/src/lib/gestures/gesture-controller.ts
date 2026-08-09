@@ -62,23 +62,45 @@ export function dispatchWheel(deltaY: number) {
   );
 }
 
+/**
+ * Gestures were originally globe-only (drive OrbitControls via synthetic
+ * events). Real usage found that most of the time the user is on the orb
+ * screen, not the globe — and expects pinch-zoom to visibly do *something*
+ * there too, since that's the screen actually on screen most of the time.
+ * Same gesture vocabulary, different target: when the globe canvas isn't
+ * mounted, two-hand-distance drives the orb's own scale (gesture-store's
+ * `orbScale`, applied as a CSS transform in OrbStage.tsx) and an open palm
+ * resets it to 1, instead of being silent no-ops.
+ */
 export function handleFrame(frame: GestureFrame) {
-  if (frame.pinch) {
-    if (!wasPinching) {
-      dispatchPointer("pointerdown", frame.pinch.x, frame.pinch.y);
-    } else {
-      dispatchPointer("pointermove", frame.pinch.x, frame.pinch.y);
+  const canvas = getGlobeCanvas();
+
+  if (canvas) {
+    if (frame.pinch) {
+      if (!wasPinching) {
+        dispatchPointer("pointerdown", frame.pinch.x, frame.pinch.y);
+      } else {
+        dispatchPointer("pointermove", frame.pinch.x, frame.pinch.y);
+      }
+      wasPinching = true;
+    } else if (wasPinching) {
+      dispatchPointer("pointerup", 0, 0);
+      wasPinching = false;
     }
-    wasPinching = true;
-  } else if (wasPinching) {
-    dispatchPointer("pointerup", 0, 0);
+  } else {
     wasPinching = false;
   }
 
   if (frame.twoHandDistance !== null) {
     if (lastTwoHandDistance !== null) {
       const delta = frame.twoHandDistance - lastTwoHandDistance;
-      if (Math.abs(delta) > 0.002) dispatchWheel(-delta * 800);
+      if (Math.abs(delta) > 0.002) {
+        if (canvas) {
+          dispatchWheel(-delta * 800);
+        } else {
+          useGestureStore.getState().adjustOrbScale(delta * 1.5);
+        }
+      }
     }
     lastTwoHandDistance = frame.twoHandDistance;
   } else {
@@ -89,7 +111,11 @@ export function handleFrame(frame: GestureFrame) {
     const now = performance.now();
     // Debounce — an open palm can be held for a while; only reset once per hold.
     if (now - lastOpenPalmAt > 1200) {
-      resetGlobeView();
+      if (canvas) {
+        resetGlobeView();
+      } else {
+        useGestureStore.getState().resetOrbScale();
+      }
       lastOpenPalmAt = now;
     }
   } else {

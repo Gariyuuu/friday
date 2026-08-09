@@ -492,10 +492,12 @@ function InputSection() {
         Input — Gesture Controls
       </h2>
       <p className="text-xs text-text-faint">
-        Optional webcam hand-tracking to rotate/zoom the globe: pinch and drag to
-        rotate, bring two hands together or apart to zoom, hold an open palm to
-        reset the view. Off by default — nothing touches the camera until you turn
-        this on. Requires a browser camera permission prompt the first time.
+        Optional webcam hand-tracking. On the orb screen: bring two hands
+        together or apart to resize the orb, hold an open palm to reset. On the
+        Global Intelligence screen: pinch and drag to rotate the globe, two
+        hands together/apart to zoom, open palm to reset the view. Off by
+        default — nothing touches the camera until you turn this on. Requires a
+        browser camera permission prompt the first time.
       </p>
 
       <label className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
@@ -515,9 +517,10 @@ function InputSection() {
       </div>
 
       <p className="text-xs text-text-faint">
-        Only works on the globe (Global Intelligence view) today. Hand-tracking
-        runs locally in your browser via MediaPipe — no video ever leaves your
-        machine.
+        Works on both the orb and Global Intelligence screens — a legend
+        showing the active gestures appears near the camera-active indicator
+        whenever the camera is on. Hand-tracking runs locally in your browser
+        via MediaPipe — no video ever leaves your machine.
       </p>
     </div>
   );

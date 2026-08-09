@@ -16,6 +16,7 @@ Object.defineProperty(window, "localStorage", {
 });
 
 const { useGestureStore } = await import("@/stores/gesture-store");
+const { useUiStore } = await import("@/stores/ui-store");
 const { CameraActiveIndicator } = await import("../CameraActiveIndicator");
 
 describe("CameraActiveIndicator", () => {
@@ -34,5 +35,23 @@ describe("CameraActiveIndicator", () => {
 
     act(() => useGestureStore.setState({ cameraActive: false }));
     expect(screen.queryByText(/Camera Active/)).not.toBeInTheDocument();
+  });
+
+  it("shows the orb-resize legend on the orb screen", () => {
+    act(() => {
+      useGestureStore.setState({ cameraActive: true });
+      useUiStore.setState({ mode: "orb" });
+    });
+    render(<CameraActiveIndicator />);
+    expect(screen.getByText(/resize/i)).toBeInTheDocument();
+  });
+
+  it("shows the globe-rotate/zoom legend on the intelligence screen", () => {
+    act(() => {
+      useGestureStore.setState({ cameraActive: true });
+      useUiStore.setState({ mode: "intelligence" });
+    });
+    render(<CameraActiveIndicator />);
+    expect(screen.getByText(/rotate globe/i)).toBeInTheDocument();
   });
 });

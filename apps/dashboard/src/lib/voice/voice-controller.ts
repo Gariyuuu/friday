@@ -1,11 +1,45 @@
 import { createLogger } from "@/lib/logger";
 import { useOrbStore } from "@/stores/orb-store";
+import { useToastStore } from "@/stores/toast-store";
 import { executeFridayTool, getFridayToolDefinitions } from "./friday-tools";
 import { OpenAIRealtimeSession, type RealtimeServerEvent } from "./realtime-session";
 
 const logger = createLogger("VOICE");
 
+/**
+ * Without an explicit system prompt, the realtime model has no reason to
+ * proactively call open_intelligence_dashboard/get_news/search_video
+ * together — tool_choice is "auto", so with no instructions it can (and in
+ * practice did) just answer "what's happening in the world" conversationally
+ * without ever opening the dashboard or fetching real data. This is the fix
+ * for that: explicit, load-bearing instructions, not just tool descriptions.
+ */
+const FRIDAY_INSTRUCTIONS = `You are FRIDAY, a cinematic personal AI assistant running on the user's Mac. Be concise and warm, not chatty — a few sentences per turn unless asked for detail.
+
+Tool use is not optional narration — when a tool exists for what the user asked, call it and answer from its real result. Never invent data, headlines, prices, or status.
+
+Global/world-news requests (e.g. "what's happening in the world", "give me a briefing", "any big news today") are a specific case that needs MULTIPLE tool calls in the same turn, not just one:
+1. Call open_intelligence_dashboard first, so the globe/news/markets dashboard is actually visible on screen — this is a visual product, don't just describe verbally what could be shown.
+2. Call get_news to fetch real current headlines.
+3. Pick AT MOST ONE story — the single most notable one — and call search_video for it plus focus_event with its id, so the globe highlights it while you talk about it. Do not call search_video more than once per turn; API calls cost real money.
+4. Then narrate a brief summary grounded in what those tools actually returned.
+
+If a tool reports it isn't configured or returns no results, say so plainly — don't paper over it with a plausible-sounding guess.`;
+
 let session: OpenAIRealtimeSession | null = null;
+let idleTimer: ReturnType<typeof setInterval> | null = null;
+let lastActivityAt = 0;
+
+// Voice billing is per second of connected audio, not per word spoken — a
+// session left open while the user steps away keeps costing money in
+// silence. Auto-disconnect after sustained inactivity rather than relying on
+// the user remembering to click "End Voice."
+const IDLE_TIMEOUT_MS = 3 * 60 * 1000;
+const IDLE_CHECK_INTERVAL_MS = 20 * 1000;
+
+function markActivity() {
+  lastActivityAt = Date.now();
+}
 
 interface FunctionCallOutputItem {
   type: "function_call";
@@ -47,6 +81,7 @@ async function handleFunctionCalls(calls: FunctionCallOutputItem[]) {
 
 function handleServerEvent(event: RealtimeServerEvent) {
   const store = useOrbStore.getState();
+  markActivity();
 
   switch (event.type) {
     case "session.created":
@@ -81,10 +116,25 @@ function handleServerEvent(event: RealtimeServerEvent) {
       }
       break;
     }
-    case "error":
-      logger.error("realtime session error", { message: event.error?.message });
+    case "error": {
+      const message = event.error?.message ?? "";
+      // Real race, more likely now that a single turn often chains several
+      // tool calls (see FRIDAY_INSTRUCTIONS): the server can auto-create a
+      // response for a new user turn (VAD-detected) at the same moment
+      // handleFunctionCalls() sends its own response.create() to continue
+      // the previous turn. The rejected response.create is redundant, not
+      // fatal — the in-flight response the server already started continues
+      // normally. Surfacing this as voiceStatus "error" would show a false
+      // "Something went wrong" over an interaction that's actually still
+      // succeeding, so just log it.
+      if (message.includes("already has an active response in progress")) {
+        logger.warn("redundant response.create ignored (a response was already in flight)", { message });
+        break;
+      }
+      logger.error("realtime session error", { message });
       store.setVoiceStatus("error");
       break;
+    }
     default:
       break;
   }
@@ -112,6 +162,14 @@ export async function connectVoice(): Promise<void> {
   try {
     await next.connect();
     session = next;
+    markActivity();
+    idleTimer = setInterval(() => {
+      if (Date.now() - lastActivityAt > IDLE_TIMEOUT_MS) {
+        logger.info("disconnecting voice session after sustained inactivity");
+        useToastStore.getState().show("Voice session ended after 3 minutes of inactivity", "success");
+        disconnectVoice();
+      }
+    }, IDLE_CHECK_INTERVAL_MS);
     // Give FRIDAY her real capabilities for this session — local Mac tools (still
     // gated by the same approval engine as the command palette), live intelligence
     // data, dashboard control, and memory (spec §29's orchestration layer).
@@ -122,6 +180,7 @@ export async function connectVoice(): Promise<void> {
         // 'session.type'") — session.update needs this even though it wasn't
         // shown in the doc example this was first written from.
         type: "realtime",
+        instructions: FRIDAY_INSTRUCTIONS,
         tools: getFridayToolDefinitions(),
         tool_choice: "auto",
       },
@@ -136,6 +195,10 @@ export async function connectVoice(): Promise<void> {
 export function disconnectVoice(): void {
   session?.disconnect();
   session = null;
+  if (idleTimer !== null) {
+    clearInterval(idleTimer);
+    idleTimer = null;
+  }
   useOrbStore.getState().setVoiceStatus("offline");
   useOrbStore.getState().setAudioAmplitude(0);
 }

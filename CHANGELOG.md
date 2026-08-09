@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.24.0 — Three Real Bugs Found From Actually Using the App
+
+User feedback after real hands-on use, not from review: "what's happening in
+the world" didn't open the dashboard, gesture zoom did nothing on the orb
+screen, and a worry that API usage might be high. All three were real.
+
+- **Voice never opened the intelligence dashboard**: the realtime session
+  had zero system `instructions` — nothing told the model that a
+  world-news-style question should call `open_intelligence_dashboard` +
+  `get_news` (+ `search_video`/`focus_event` for the top story), so with
+  `tool_choice: "auto"` and no prompt it usually just answered
+  conversationally instead. Added real instructions to `session.update`.
+  **Verified with a genuine spoken query** (macOS `say` piped through
+  Chromium's fake-audio-capture, with the real WebRTC data channel
+  monkey-patched to inspect what was actually sent): the model called
+  `open_intelligence_dashboard` and `get_news`, the globe/news/markets
+  dashboard genuinely rendered with real headlines and real market data,
+  and server logs showed real `search_video` calls for the top story.
+- **A real (if narrow) race surfaced by the fix above**: multi-tool-call
+  turns take longer, which made it possible for the server to auto-create a
+  response for a new VAD-detected user turn at the same moment
+  `handleFunctionCalls()` sent its own `response.create()` to continue the
+  previous turn — OpenAI correctly rejects the redundant one
+  ("Conversation already has an active response in progress"), but the
+  client was surfacing that rejection as a scary `voiceStatus: "error"`
+  ("Something went wrong") even though the actual in-flight response
+  continues fine. Now logged and ignored specifically for that message,
+  not treated as fatal.
+- **Gestures did nothing on the orb screen**: `gesture-controller.ts` only
+  ever drove the globe's `OrbitControls` — on the orb screen (the default,
+  most-used screen) `getGlobeCanvas()` returns null and every gesture was a
+  silent no-op, which is what "the orb is just not changing its size"
+  actually was. Extended the same two-hand-distance-zoom and open-palm-reset
+  vocabulary to scale the orb itself (`gesture-store`'s new `orbScale`,
+  clamped 0.6–1.8, applied as a CSS transform in `OrbStage.tsx`) when the
+  globe isn't mounted. 5 new unit tests cover the orb-scale branch
+  (grows/shrinks/clamps/resets); the globe branch's existing tests are
+  unchanged.
+- **No in-the-moment gesture discoverability**: the only explanation of what
+  gestures do lived in Settings, which nobody re-reads mid-session.
+  `CameraActiveIndicator` (already the always-visible "camera is on"
+  badge) now also shows a compact, mode-aware legend — different text for
+  the orb screen vs. the Global Intelligence screen — right where the user
+  is actually looking.
+- **API usage**: investigated for anything unnecessarily burning cost — no
+  hidden polling found (the 1s `setInterval`s in `FreshnessBadge`/
+  `StatusBar` are just clock ticks, not API calls; geocoding is
+  per-event-id cached). The real, addressable lever was voice session
+  duration (Realtime audio is billed per second connected, not per word
+  spoken) — added a 3-minute idle auto-disconnect so a session left open
+  while stepping away doesn't keep costing money in silence, and tightened
+  the new instructions to call `search_video` at most once per turn
+  instead of for every notable story.
+- Verified live: mode-aware legend confirmed on both screens via Playwright,
+  the spoken-query test above, 172 tests / 21 files passing (up from 165),
+  typecheck/lint/build clean.
+
 ## 0.23.0 — Redirect-Based SSRF Gap Closed, a Forward Proxy Replaces a Broken `page.route()` Approach
 
 - **Closed the last concretely-scoped Phase 9 gap**: `ssrf-guard.ts`

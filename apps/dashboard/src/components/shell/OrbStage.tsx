@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Orb } from "@/components/orb/Orb";
 import { useVoiceConnected } from "@/components/voice/VoiceActivation";
 import { disconnectVoice, toggleVoiceMute } from "@/lib/voice/voice-controller";
+import { useGestureStore } from "@/stores/gesture-store";
 import { useOrbStore } from "@/stores/orb-store";
 
 const STATE_COPY: Record<string, string> = {
@@ -25,6 +26,7 @@ export function OrbStage() {
   const userTranscript = useOrbStore((s) => s.userTranscript);
   const connected = useVoiceConnected();
   const [muted, setMuted] = useState(false);
+  const orbScale = useGestureStore((s) => s.orbScale);
 
   return (
     <motion.div
@@ -34,7 +36,9 @@ export function OrbStage() {
       transition={{ duration: 0.4 }}
       className="flex h-full flex-col items-center justify-center gap-6 px-6"
     >
-      <Orb className="size-[min(60vh,480px,85vw)]" />
+      <div style={{ transform: `scale(${orbScale})` }}>
+        <Orb className="size-[min(60vh,480px,85vw)]" />
+      </div>
       <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
         {connected ? `VOICE // ${voiceStatus.toUpperCase()}` : STATE_COPY[orbState]}
       </p>

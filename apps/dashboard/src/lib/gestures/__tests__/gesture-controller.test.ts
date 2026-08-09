@@ -1,6 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GestureFrame } from "../gesture-detector";
 
+// zustand's persist middleware reads window.localStorage once at
+// module-evaluation time — stub before dynamically importing gesture-store.ts
+// (directly or transitively via gesture-controller.ts).
+const memoryStore = new Map<string, string>();
+Object.defineProperty(window, "localStorage", {
+  configurable: true,
+  value: {
+    getItem: (key: string) => memoryStore.get(key) ?? null,
+    setItem: (key: string, value: string) => memoryStore.set(key, value),
+    removeItem: (key: string) => memoryStore.delete(key),
+    clear: () => memoryStore.clear(),
+  },
+});
+
 /**
  * dispatchPointer/dispatchWheel/handleFrame translate semantic gestures into
  * synthetic DOM PointerEvent/WheelEvent dispatched at the globe's canvas —
@@ -164,6 +178,86 @@ describe("gesture-controller event dispatch", () => {
       vi.advanceTimersByTime(1300);
       handleFrame(frame({ openPalm: true })); // held past the debounce window — fires again
       expect(resetGlobeViewMock).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe("handleFrame, orb screen (no globe canvas mounted)", () => {
+    let useGestureStore: typeof import("@/stores/gesture-store").useGestureStore;
+
+    beforeEach(async () => {
+      // No globe canvas in the DOM this time — simulates being on the orb
+      // screen, where gesture-controller.ts falls back to scaling the orb
+      // instead of driving OrbitControls.
+      document.body.innerHTML = "";
+      vi.doMock("../globe-registry", () => ({
+        getGlobeCanvas: () => document.querySelector('[data-gesture-target="globe"] canvas'),
+        resetGlobeView: vi.fn(),
+      }));
+      vi.resetModules();
+      const mod = await import("../gesture-controller");
+      handleFrame = mod.handleFrame;
+      useGestureStore = (await import("@/stores/gesture-store")).useGestureStore;
+      useGestureStore.setState({ orbScale: 1 });
+    });
+
+    it("does not dispatch pointer/wheel events (nothing to dispatch them at)", () => {
+      const events: string[] = [];
+      document.addEventListener("pointerdown", () => events.push("down"));
+      document.addEventListener("wheel", () => events.push("wheel"));
+
+      handleFrame(frame({ pinch: { x: 0.5, y: 0.5 } }));
+      handleFrame(frame({ twoHandDistance: 0.3 }));
+      handleFrame(frame({ twoHandDistance: 0.35 }));
+
+      expect(events).toHaveLength(0);
+    });
+
+    it("grows orbScale as two-hand distance grows", () => {
+      handleFrame(frame({ twoHandDistance: 0.3 })); // baseline frame
+      expect(useGestureStore.getState().orbScale).toBe(1);
+
+      handleFrame(frame({ twoHandDistance: 0.35 })); // distance grew
+      expect(useGestureStore.getState().orbScale).toBeGreaterThan(1);
+    });
+
+    it("shrinks orbScale as two-hand distance shrinks", () => {
+      handleFrame(frame({ twoHandDistance: 0.35 }));
+      handleFrame(frame({ twoHandDistance: 0.3 }));
+      expect(useGestureStore.getState().orbScale).toBeLessThan(1);
+    });
+
+    it("clamps orbScale to a sane range instead of growing/shrinking unbounded", () => {
+      let distance = 0.1;
+      for (let i = 0; i < 50; i++) {
+        distance += 0.05;
+        handleFrame(frame({ twoHandDistance: distance }));
+      }
+      expect(useGestureStore.getState().orbScale).toBeLessThanOrEqual(1.8);
+
+      handleFrame(frame({ twoHandDistance: null }));
+      let shrinking = distance;
+      for (let i = 0; i < 50; i++) {
+        shrinking -= 0.05;
+        handleFrame(frame({ twoHandDistance: shrinking }));
+      }
+      expect(useGestureStore.getState().orbScale).toBeGreaterThanOrEqual(0.6);
+    });
+
+    it("resets orbScale to 1 on an open palm", () => {
+      // Same cold-start debounce quirk as the globe reset test above:
+      // lastOpenPalmAt starts at 0, so the very first call needs the clock
+      // pushed forward past the 1200ms debounce window first.
+      vi.useFakeTimers();
+      vi.advanceTimersByTime(2000);
+
+      handleFrame(frame({ twoHandDistance: 0.3 }));
+      handleFrame(frame({ twoHandDistance: 0.4 }));
+      expect(useGestureStore.getState().orbScale).not.toBe(1);
+
+      handleFrame(frame({ openPalm: true }));
+      expect(useGestureStore.getState().orbScale).toBe(1);
 
       vi.useRealTimers();
     });

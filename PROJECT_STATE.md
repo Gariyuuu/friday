@@ -220,11 +220,36 @@ especially). Spot-checked this session by reading the actual source tree:
 ## Current
 
 Every phase has a live, verified vertical slice, including all of Phase 9:
-`shell` and `browse` (single-shot and multi-step interaction), the SSRF fix
-and its two independent layers, and a Quick Actions UI entry — all
-re-verified live against the actual droplet and through the real app. Test
-coverage was thin (2 tests total) until this session added real unit tests
-for the highest-stakes pure logic — see `## Test coverage` below.
+`shell` and `browse` (single-shot and multi-step interaction), a
+three-layer SSRF defense, and a Quick Actions UI entry with a step-builder
+and results panel — all re-verified live against the actual droplet and
+through the real app. 172 tests across 21 files — see `## Test coverage`
+below.
+
+**2026-08-09, real-usage bug-fix round**: the user actually used the app
+(not just this documentation's own testing) and found three real problems,
+all fixed and live-verified this round:
+- Voice never opened the intelligence dashboard for "what's happening in
+  the world"-style questions — the realtime session had zero system
+  `instructions`, so with `tool_choice: "auto"` the model usually just
+  answered conversationally instead of calling `open_intelligence_dashboard`
+  + `get_news`. Fixed with real instructions in `session.update`; verified
+  with a genuine spoken query (macOS `say` → Chromium fake-audio-capture)
+  that the dashboard actually rendered with real headlines/market data.
+  Surfaced a real (narrow) response-creation race in the process — fixed,
+  see `voice-controller.ts`'s `error` case handling.
+- Gesture zoom did nothing on the orb screen (the default, most-used
+  screen) — `gesture-controller.ts` only ever drove the globe's
+  `OrbitControls`, so gestures were a silent no-op anywhere else. Extended
+  the same vocabulary to scale the orb itself when the globe isn't
+  mounted, plus a mode-aware on-screen gesture legend for discoverability
+  (previously only documented in Settings, which nobody re-reads
+  mid-session).
+- Investigated API usage — no hidden polling found; added a 3-minute voice
+  idle auto-disconnect (Realtime audio bills per second connected) and
+  tightened the new instructions to call `search_video` at most once per
+  turn instead of once per notable story.
+See `CHANGELOG.md`'s 0.24.0 entry for full detail.
 
 ## Performance
 
@@ -282,8 +307,13 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 165 tests (21 files) across this session (in
-seven rounds). Most recently: `VmPromptModal`'s expanded test suite (18 —
+172 tests across 21 files. Most recently: 5 new tests in
+`gesture-controller.test.ts` covering the orb-scale branch (grows/shrinks/
+clamps to 0.6-1.8/resets on open palm when the globe canvas isn't mounted)
+and 2 new tests in `CameraActiveIndicator.test.tsx` for the mode-aware
+gesture legend. Went from 2 tests (1 file) to 165 tests (21 files) across
+the prior session (in seven rounds). Before that: `VmPromptModal`'s
+expanded test suite (18 —
 step add/remove, the type-only text field, the 10-step cap, submitting the
 built sequence with blank selectors trimmed, resetting after submit) and a
 new `VmResultModal.test.tsx` (8 — success/failure headers, title/url,
