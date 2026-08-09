@@ -498,6 +498,13 @@ backdrop). Earlier rounds:
   it disappears when disconnecting only after full `READY` state.
   Pre-existing, not introduced by that change. Needs a cancellation
   token/generation counter in `voice-controller.ts`'s `connectVoice()`.
+- **New this round**: `pnpm desktop:build`'s `.app` bundling succeeds, but
+  the subsequent optional `.dmg` step (`bundle_dmg.sh`) fails — the `.app`
+  itself is unaffected and was installed to `~/Applications` directly by
+  copying it from `src-tauri/target/release/bundle/macos/`. Not
+  investigated further since the user's actual workflow doesn't need a
+  `.dmg` (no one else needs to install this); flagged for whenever
+  distributing to someone else actually comes up.
 - Gesture recognition accuracy against a real hand is unverified.
 - Autostart enable/disable unverified beyond "initializes without crashing."
 - Vitest ESM/CJS config warning (harmless); `next typegen` must run before
