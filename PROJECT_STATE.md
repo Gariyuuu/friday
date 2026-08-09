@@ -233,14 +233,59 @@ start`), not guessing from source or build-log summaries:
   `next/dynamic` overhead without a real payoff. Not shipped. Don't retry
   this without re-measuring; the intuition ("split the code you don't
   always need") was reasonable, the actual bundler behavior didn't agree.
-- **Not yet measured**: runtime frame rate / memory growth of the orb and
-  globe Three.js scenes over an extended session (only bundle *download*
-  size has been profiled so far, not render performance).
+- **Runtime frame rate / memory, first measurement, same session**: a real
+  Playwright session against a production build, using a CDP session for
+  heap metrics (`Performance.getMetrics`, `JSHeapUsedSize`) and an
+  injected `requestAnimationFrame` counter for FPS.
+  - Orb: 110-120 FPS, ~0.9MB heap growth over 8s (normal allocation
+    churn, not a leak).
+  - Globe: 53-64 FPS, ~1.9MB heap growth over 8s. Notably lower FPS than
+    Orb in the same environment — checked `Globe.tsx`/`EventMarker.tsx`
+    for an obvious cause (a missing memoization, a fast polling interval
+    causing excessive re-renders) and found none; `use-intelligence-
+    data.ts` has no polling interval at all. Most likely explanation:
+    genuine extra 3D cost (per-marker `useFrame` pulse animation ×
+    up to ~13 events, `antialias: true`) combined with this headless test
+    environment's software rendering (no real GPU) — real-world FPS on
+    actual hardware is expected to be equal or higher. Still comfortably
+    smooth (well above any "janky" threshold); **not being treated as a
+    confirmed problem without stronger evidence** — no changes made
+    based on this number alone.
+  - **Real leak test, not just a hunch**: 10 repeated orb↔globe mode
+    switches (mounting/unmounting the Three.js scenes each time) showed
+    *zero net heap growth* after forcing GC via CDP — actually slightly
+    negative (-0.8MB), meaning React Three Fiber's cleanup on unmount is
+    working correctly. Zero console errors across the entire run.
+  - **Caveat stated plainly**: this is a software-rendered, headless
+    Chromium measurement — a reasonable lower-bound proxy for relative
+    comparisons (orb vs. globe, before vs. after a change) within this
+    same environment, but not a direct stand-in for the user's actual
+    GPU-accelerated experience. Treat absolute FPS numbers here as
+    conservative, not as literally what the user sees.
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 72 tests (8 files) across this session (in two
-rounds):
+Went from 2 tests (1 file) to 83 tests (10 files) across this session (in
+three rounds):
+
+- `vitest.setup.ts` added (jest-dom matchers, RTL auto-`cleanup()` after
+  each test) — needed for the two component tests below, the first in
+  this repo.
+- `components/tools/__tests__/ToolApprovalModal.test.tsx` (6 tests) — the
+  critical-risk red banner and "Always Allow" correctly hidden only for
+  critical tools, each of the three buttons resolving the right decision
+  with the right approval id. Complements the earlier live Playwright
+  verification of this same component with a fast, no-infra regression
+  check.
+- `components/shell/__tests__/Toast.test.tsx` (5 tests) — renders nothing
+  with no toast, shows text on `show()`, tone-based danger styling, the
+  real 3500ms auto-dismiss timer, and a newer toast correctly surviving an
+  older one's stale dismiss timer (a real race the store's `id`-check
+  guards against). Had to assert on store state rather than DOM presence
+  for the dismiss-timer test — motion/react's exit animation runs on
+  `requestAnimationFrame`, not fake timers, so the element stays mounted
+  (mid-fade) past when the store actually clears it; DOM presence isn't
+  the right signal for testing the *dismissal logic* specifically.
 
 - `lib/vm/__tests__/ssrf-guard.test.ts` (21 tests) — every blocked IPv4/IPv6
   range, boundary cases just inside/outside each range, DNS-rebinding
@@ -281,11 +326,16 @@ rounds):
   this testable directly.
 - `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
   log-level filtering.
-- Not covered yet: anything requiring a real browser/DOM interaction
-  (components), anything requiring the real VM/network (intentionally —
-  those are verified live instead, which this project treats as the more
-  meaningful signal for infra-dependent code; see e.g. Phase 9's live
-  verification notes above rather than mocked integration tests for it).
+- Not covered yet: most other components (only 2 of many now have tests —
+  `ToolApprovalModal`/`Toast` were chosen as the highest-value, most
+  tractable starting points), anything involving a real WebGL/Canvas
+  context (`Orb`, `Globe` — jsdom has no WebGL, these need a real browser,
+  which is why they're verified live via Playwright instead, same
+  reasoning as VM/network-dependent code below), anything requiring the
+  real VM/network (intentionally — those are verified live instead, which
+  this project treats as the more meaningful signal for infra-dependent
+  code; see e.g. Phase 9's live verification notes above rather than
+  mocked integration tests for it).
 
 ## Next
 

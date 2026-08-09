@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.18.0 — First Runtime Performance Measurement + Component Tests
+
+- **First-ever runtime performance profile of the orb/globe Three.js
+  scenes** (previously only bundle *download* size had been measured).
+  Used a real Playwright session against a production build with a
+  Chrome DevTools Protocol session for heap metrics and an injected
+  requestAnimationFrame counter for FPS:
+  - Orb view: 110-120 FPS, ~0.9MB heap growth over 8s (normal churn, not
+    a leak).
+  - Globe view: 53-64 FPS, ~1.9MB heap growth over 8s. Notably lower than
+    Orb in this same environment — investigated for an obvious cause
+    (excessive re-renders, a missing memoization) and didn't find one;
+    the most likely explanation is real 3D rendering cost (antialiasing +
+    marker count) combined with this test environment's software
+    rendering (no real GPU), which is expected to be lower than the
+    user's actual hardware. Still comfortably smooth; not treated as a
+    confirmed problem without more evidence.
+  - **Good news, genuinely tested for**: 10 repeated orb↔globe mode
+    switches (mount/unmount of the Three.js scenes) showed *zero* net
+    heap growth after forcing GC — no memory leak from repeated
+    switching. Zero console errors throughout the whole run.
+- **First component-level tests** (previously only `lib/` logic had
+  coverage, nothing in `components/`): added `vitest.setup.ts` (jest-dom
+  matchers + RTL auto-cleanup) and wrote tests for `ToolApprovalModal`
+  (the critical-risk banner, "Always Allow" correctly hidden only for
+  critical tools, each button resolving the right decision) and `Toast`
+  (rendering, tone-based styling, the real 3500ms auto-dismiss timer, and
+  a newer toast correctly surviving an older one's stale dismiss timer).
+  83 tests across 10 files now.
+
 ## 0.17.0 — More Test Coverage: Intelligence Providers, Gesture Dispatch
 
 - 72 tests across 8 files now (up from 37 last round): added coverage for
