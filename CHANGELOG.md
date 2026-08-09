@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.19.0 — More Component Tests (Sparkline, FreshnessBadge, CameraActiveIndicator, VmPromptModal)
+
+- 107 tests across 14 files now (up from 83). Added `Sparkline` (4 tests —
+  renders nothing under 2 points, correct plotting, color by direction, no
+  div-by-zero on a flat line), `FreshnessBadge` (7 tests — all four status
+  labels, the DEMO DATA badge, "updated Ns ago" shown only for
+  live+timestamped data, never a negative age from clock skew),
+  `CameraActiveIndicator` (2 tests), and `VmPromptModal` (11 tests — mode-
+  specific copy, Run disabled until non-whitespace input, Cancel doesn't
+  call either VM function, Run calls the right one with trimmed input and
+  closes immediately, Enter submits/Escape cancels, success/failure/
+  rejected-promise toasts).
+- Fixed a real testing-hygiene issue found while adding these: `vi.waitFor`
+  (vitest's own) isn't act()-aware, so awaiting it around a state update
+  triggered a "not wrapped in act()" warning; switched to
+  `@testing-library/react`'s `waitFor`, which is.
+
 ## 0.18.0 — First Runtime Performance Measurement + Component Tests
 
 - **First-ever runtime performance profile of the orb/globe Three.js

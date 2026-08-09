@@ -265,12 +265,11 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 83 tests (10 files) across this session (in
-three rounds):
+Went from 2 tests (1 file) to 107 tests (14 files) across this session (in
+four rounds):
 
 - `vitest.setup.ts` added (jest-dom matchers, RTL auto-`cleanup()` after
-  each test) — needed for the two component tests below, the first in
-  this repo.
+  each test) — needed for component tests, the first in this repo.
 - `components/tools/__tests__/ToolApprovalModal.test.tsx` (6 tests) — the
   critical-risk red banner and "Always Allow" correctly hidden only for
   critical tools, each of the three buttons resolving the right decision
@@ -286,6 +285,28 @@ three rounds):
   `requestAnimationFrame`, not fake timers, so the element stays mounted
   (mid-fade) past when the store actually clears it; DOM presence isn't
   the right signal for testing the *dismissal logic* specifically.
+- `components/intelligence/__tests__/Sparkline.test.tsx` (4 tests) — no
+  render under 2 points, correct point plotting spanning the full 0-100
+  axis, color follows the `positive` prop, and no `NaN`/`Infinity` in the
+  output when every value is identical (division by a zero range).
+- `components/intelligence/__tests__/FreshnessBadge.test.tsx` (7 tests) —
+  all four status labels, the DEMO DATA badge shown only when `isMock`,
+  "updated Ns ago" shown only for `status: "live"` *and* a set
+  `lastUpdated`, and never a negative age even under simulated clock skew
+  (a `lastUpdated` slightly in the future).
+- `components/gestures/__tests__/CameraActiveIndicator.test.tsx`
+  (2 tests) — visibility follows `gestureStore.cameraActive` exactly.
+- `components/tools/__tests__/VmPromptModal.test.tsx` (11 tests) —
+  mode-specific copy/placeholder, Run disabled until non-whitespace input,
+  Cancel closes without calling either VM function, Run calls the correct
+  one (`runOnVm`/`browseOnVm`) with trimmed input and closes the modal
+  immediately (not waiting for the task), Enter submits/Escape cancels,
+  and success/failure/rejected-promise outcomes each produce the right
+  toast. **Fixed a real testing-hygiene issue while writing these**:
+  `vi.waitFor` (vitest's own) isn't act()-aware, so the resulting state
+  update triggered a real "not wrapped in act()" console warning even
+  though the test passed — switched to `@testing-library/react`'s
+  `waitFor`, which is act()-aware, and the warning went away.
 
 - `lib/vm/__tests__/ssrf-guard.test.ts` (21 tests) — every blocked IPv4/IPv6
   range, boundary cases just inside/outside each range, DNS-rebinding
@@ -326,14 +347,17 @@ three rounds):
   this testable directly.
 - `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
   log-level filtering.
-- Not covered yet: most other components (only 2 of many now have tests —
-  `ToolApprovalModal`/`Toast` were chosen as the highest-value, most
-  tractable starting points), anything involving a real WebGL/Canvas
-  context (`Orb`, `Globe` — jsdom has no WebGL, these need a real browser,
-  which is why they're verified live via Playwright instead, same
-  reasoning as VM/network-dependent code below), anything requiring the
-  real VM/network (intentionally — those are verified live instead, which
-  this project treats as the more meaningful signal for infra-dependent
+- Not covered yet: most other components (6 of ~21 now have tests —
+  `ToolApprovalModal`/`Toast`/`Sparkline`/`FreshnessBadge`/
+  `CameraActiveIndicator`/`VmPromptModal` were the highest-value, most
+  tractable ones so far; `CommandPalette`, the intelligence panels, and
+  `EventDetailPanel` are reasonable next targets), anything involving a
+  real WebGL/Canvas context (`Orb`, `Globe` — jsdom has no WebGL, these
+  need a real browser, which is why they're verified live via Playwright
+  instead, same reasoning as VM/network-dependent code below), anything
+  requiring the real VM/network (intentionally — those are verified live
+  instead, which this project treats as the more meaningful signal for
+  infra-dependent
   code; see e.g. Phase 9's live verification notes above rather than
   mocked integration tests for it).
 
