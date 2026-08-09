@@ -150,6 +150,7 @@ export async function connectVoice(): Promise<void> {
     onConnectionStateChange: (state) => {
       if (state === "failed" || state === "disconnected" || state === "closed") {
         useOrbStore.getState().setVoiceStatus("offline");
+        useOrbStore.getState().setVoiceConnectedAt(null);
       }
     },
     onAudioLevel: (level) => {
@@ -163,6 +164,7 @@ export async function connectVoice(): Promise<void> {
     await next.connect();
     session = next;
     markActivity();
+    store.setVoiceConnectedAt(Date.now());
     idleTimer = setInterval(() => {
       if (Date.now() - lastActivityAt > IDLE_TIMEOUT_MS) {
         logger.info("disconnecting voice session after sustained inactivity");
@@ -201,6 +203,7 @@ export function disconnectVoice(): void {
   }
   useOrbStore.getState().setVoiceStatus("offline");
   useOrbStore.getState().setAudioAmplitude(0);
+  useOrbStore.getState().setVoiceConnectedAt(null);
 }
 
 export function toggleVoiceMute(muted: boolean): void {

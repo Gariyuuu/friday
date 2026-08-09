@@ -41,6 +41,7 @@ describe("OrbStage", () => {
         voiceStatus: "offline",
         transcript: "",
         userTranscript: "",
+        voiceConnectedAt: null,
       });
       useGestureStore.setState({ orbScale: 1 });
     });
@@ -49,14 +50,15 @@ describe("OrbStage", () => {
   it("shows the idle state copy and no voice controls when not connected", () => {
     render(<OrbStage />);
     expect(screen.getByText("Press ⌥ + V to talk, or ⌘K for commands.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "End Voice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "End call" })).not.toBeInTheDocument();
   });
 
-  it("shows VOICE // <STATUS> and voice controls once connected", () => {
+  it("shows the call card and voice controls once connected", () => {
     act(() => useOrbStore.setState({ voiceStatus: "listening" }));
     render(<OrbStage />);
-    expect(screen.getByText("VOICE // LISTENING")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "End Voice" })).toBeInTheDocument();
+    expect(screen.getByText("F.R.I.D.A.Y.")).toBeInTheDocument();
+    expect(screen.getByText(/Listening…/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "End call" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mute" })).toBeInTheDocument();
   });
 
@@ -83,11 +85,11 @@ describe("OrbStage", () => {
     expect(toggleVoiceMute).toHaveBeenCalledWith(false);
   });
 
-  it("End Voice calls disconnectVoice", () => {
+  it("End call calls disconnectVoice", () => {
     act(() => useOrbStore.setState({ voiceStatus: "listening" }));
     render(<OrbStage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "End Voice" }));
+    fireEvent.click(screen.getByRole("button", { name: "End call" }));
     expect(disconnectVoice).toHaveBeenCalledTimes(1);
   });
 

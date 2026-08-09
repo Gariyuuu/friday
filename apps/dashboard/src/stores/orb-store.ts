@@ -10,6 +10,9 @@ interface OrbStoreState {
   transcript: string;
   /** The user's last completed utterance, once OpenAI finishes transcribing it. */
   userTranscript: string;
+  /** Date.now() when the current voice session connected — drives the call-style
+   *  duration timer. Null when offline. */
+  voiceConnectedAt: number | null;
   setVoiceStatus: (status: VoiceStatus) => void;
   setAudioAmplitude: (amplitude: number) => void;
   setTranscript: (text: string) => void;
@@ -17,6 +20,7 @@ interface OrbStoreState {
   setUserTranscript: (text: string) => void;
   /** Escape hatch for demo/dev tooling that wants a state not reachable via voiceStatus alone. */
   forceOrbState: (state: OrbState) => void;
+  setVoiceConnectedAt: (timestamp: number | null) => void;
 }
 
 export const useOrbStore = create<OrbStoreState>((set) => ({
@@ -25,6 +29,7 @@ export const useOrbStore = create<OrbStoreState>((set) => ({
   audioAmplitude: 0,
   transcript: "",
   userTranscript: "",
+  voiceConnectedAt: null,
   setVoiceStatus: (status) =>
     set({ voiceStatus: status, orbState: voiceStatusToOrbState[status] }),
   setAudioAmplitude: (amplitude) =>
@@ -33,4 +38,5 @@ export const useOrbStore = create<OrbStoreState>((set) => ({
   appendTranscript: (delta) => set((s) => ({ transcript: s.transcript + delta })),
   setUserTranscript: (text) => set({ userTranscript: text }),
   forceOrbState: (state) => set({ orbState: state }),
+  setVoiceConnectedAt: (timestamp) => set({ voiceConnectedAt: timestamp }),
 }));
