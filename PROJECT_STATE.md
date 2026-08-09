@@ -1,8 +1,11 @@
 # Project State
 
-Last updated: 2026-08-07, session 4. Phase 9 now has two real VM task types
-(`shell` and `browse`), an app-layer SSRF guard, a prompt-injection content
-wrapper, and the VM host moved out of committed source.
+Last updated: 2026-08-08, session 4 continued. Phase 9 has two real VM task
+types (`shell` and `browse`), an app-layer SSRF guard, a prompt-injection
+content wrapper, and the VM host moved out of committed source. Since then:
+a real, measured bundle-size win (deferred MediaPipe load, see
+`## Performance`) and test coverage more than doubled again (37 → 72 tests,
+see `## Test coverage`).
 
 **A note on verification provenance, since two sessions worked this repo
 concurrently.** This documentation session independently verified, by
@@ -236,7 +239,8 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 37 tests (4 files) this session:
+Went from 2 tests (1 file) to 72 tests (8 files) across this session (in two
+rounds):
 
 - `lib/vm/__tests__/ssrf-guard.test.ts` (21 tests) — every blocked IPv4/IPv6
   range, boundary cases just inside/outside each range, DNS-rebinding
@@ -255,6 +259,26 @@ Went from 2 tests (1 file) to 37 tests (4 files) this session:
   time, so a plain top-level test import was already too late to stub it —
   fixed by stubbing `window.localStorage` first, then dynamically
   `import()`-ing the store/tool modules afterward.
+- `lib/intelligence/sources/__tests__/search.test.ts` (8 tests) and
+  `video.test.ts` (8 tests) — request shape (URL, headers, body/query
+  params) for Tavily/YouTube, response-to-domain-type mapping, the
+  honest-null-when-unconfigured contract, graceful (not throwing) failure
+  on a non-ok response or a rejected fetch.
+- `lib/intelligence/sources/__tests__/geocode.test.ts` (10 tests) — the
+  full extraction→geocode→cache pipeline, the `NONE`/no-results/API-error
+  paths all correctly caching "no location" rather than crashing, and both
+  dedup paths (already-cached, still-in-flight). Needed per-test module
+  reinstantiation (`vi.resetModules()` + dynamic re-import) plus fake
+  timers to isolate this module's real internal rate-limiter/cache state
+  between tests without incurring real multi-second delays.
+- `lib/gestures/__tests__/gesture-controller.test.ts` (9 tests) — the
+  synthetic pointer/wheel event dispatch that drives OrbitControls:
+  coordinate math including the horizontal mirror, pinch start/move/end →
+  pointerdown/move/up, two-hand distance delta → wheel (with a
+  sub-threshold no-op case), open-palm reset debounced to once per 1200ms.
+  `dispatchPointer`/`dispatchWheel`/`handleFrame` were exported from
+  `gesture-controller.ts` (previously module-private) specifically to make
+  this testable directly.
 - `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
   log-level filtering.
 - Not covered yet: anything requiring a real browser/DOM interaction

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.17.0 — More Test Coverage: Intelligence Providers, Gesture Dispatch
+
+- 72 tests across 8 files now (up from 37 last round): added coverage for
+  `searchWeb`/`searchVideo` (Tavily/YouTube — request shape, response
+  mapping, honest-null-on-missing-key, graceful failure on non-ok/network
+  error), `geocode.ts`'s background pipeline (extraction → geocode →
+  cache, NONE/no-results/API-error paths, in-flight and already-cached
+  dedup — required per-test module reinstantiation plus fake timers to
+  isolate the module's real internal rate-limiter state between tests
+  without real multi-second delays), and `gesture-controller.ts`'s
+  synthetic pointer/wheel event dispatch (coordinate math including the
+  horizontal mirror, pinch start/move/end → pointerdown/move/up, two-hand
+  distance delta → wheel with a sub-threshold no-op case, open-palm reset
+  debounce).
+- Exported `dispatchPointer`/`dispatchWheel`/`handleFrame` from
+  `gesture-controller.ts` (previously module-private) specifically to make
+  this coordinate/event-translation logic directly testable, rather than
+  only exercisable end-to-end with a real camera.
+
 ## 0.16.0 — Bundle Size: Defer MediaPipe Until Gestures Are Enabled
 
 - `lib/gestures/gesture-controller.ts` no longer statically imports

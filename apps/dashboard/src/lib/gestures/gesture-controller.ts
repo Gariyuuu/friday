@@ -24,7 +24,9 @@ let lastOpenPalmAt = 0;
  * distance becomes a wheel event. Spec §9's gesture set (pinch+drag rotate,
  * two-hand zoom, open-palm reset).
  */
-function dispatchPointer(type: "pointerdown" | "pointermove" | "pointerup", nx: number, ny: number) {
+// Exported for direct unit testing of the coordinate/event-translation math —
+// not meant to be called from outside this module in production code.
+export function dispatchPointer(type: "pointerdown" | "pointermove" | "pointerup", nx: number, ny: number) {
   const canvas = getGlobeCanvas();
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
@@ -45,7 +47,7 @@ function dispatchPointer(type: "pointerdown" | "pointermove" | "pointerup", nx: 
   );
 }
 
-function dispatchWheel(deltaY: number) {
+export function dispatchWheel(deltaY: number) {
   const canvas = getGlobeCanvas();
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
@@ -60,7 +62,7 @@ function dispatchWheel(deltaY: number) {
   );
 }
 
-function handleFrame(frame: GestureFrame) {
+export function handleFrame(frame: GestureFrame) {
   if (frame.pinch) {
     if (!wasPinching) {
       dispatchPointer("pointerdown", frame.pinch.x, frame.pinch.y);
