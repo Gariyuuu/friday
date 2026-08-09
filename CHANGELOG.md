@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.20.0 — CommandPalette Tests (the biggest component, fully covered)
+
+- 123 tests across 15 files now (up from 107). `CommandPalette` (16 tests)
+  covers every action: navigation (Orb/Intelligence/Settings), voice
+  connect/disconnect with the correct label, all five Quick Actions
+  (open app, open URL, notification, system status with real result-shape
+  formatting, both VM prompts), the demo action, and the global Cmd+K/
+  Escape keyboard shortcuts.
+- Two real jsdom gaps found and fixed in `vitest.setup.ts` (shared by every
+  future test, not just this one): `ResizeObserver` and
+  `Element.prototype.scrollIntoView` aren't implemented in jsdom, and
+  `cmdk` (the command palette library) uses both internally — stubbed as
+  no-ops.
+- Caught a real "two sources of truth" nuance while writing the voice
+  tests: the palette's displayed label ("Talk to FRIDAY" vs. "End Voice
+  Session") is driven by `orb-store`'s `voiceStatus`, but the click
+  handler's actual connect/disconnect branch checks `isVoiceConnected()`
+  (the real WebRTC connection state) separately — they stay in sync in
+  the live app because `voice-controller.ts` updates the store as the
+  connection changes, but nothing links them automatically, so the test
+  needed to set both mocks to match. Not a bug, just documented for
+  whoever touches this next.
+
 ## 0.19.0 — More Component Tests (Sparkline, FreshnessBadge, CameraActiveIndicator, VmPromptModal)
 
 - 107 tests across 14 files now (up from 83). Added `Sparkline` (4 tests —

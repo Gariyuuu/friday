@@ -265,11 +265,23 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 107 tests (14 files) across this session (in
-four rounds):
+Went from 2 tests (1 file) to 123 tests (15 files) across this session (in
+five rounds):
 
 - `vitest.setup.ts` added (jest-dom matchers, RTL auto-`cleanup()` after
-  each test) — needed for component tests, the first in this repo.
+  each test) — needed for component tests, the first in this repo. Later
+  gained `ResizeObserver` and `Element.prototype.scrollIntoView` stubs
+  (jsdom implements neither; `cmdk` needs both) — shared by every test,
+  not just `CommandPalette`'s.
+- `components/shell/__tests__/CommandPalette.test.tsx` (16 tests) — every
+  action: navigation, voice connect/disconnect with the correct label, all
+  five Quick Actions (including real result-shape formatting for System
+  Status), both VM prompts, the demo action, and the global Cmd+K/Escape
+  shortcuts. Surfaced a real two-sources-of-truth nuance: the voice label
+  reads `orb-store`'s `voiceStatus`, but the click handler's connect/
+  disconnect branch checks `isVoiceConnected()` separately — they're kept
+  in sync by `voice-controller.ts` in the live app, not automatically, so
+  the test needed both mocks aligned to exercise the "connected" case.
 - `components/tools/__tests__/ToolApprovalModal.test.tsx` (6 tests) — the
   critical-risk red banner and "Always Allow" correctly hidden only for
   critical tools, each of the three buttons resolving the right decision
@@ -347,11 +359,10 @@ four rounds):
   this testable directly.
 - `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
   log-level filtering.
-- Not covered yet: most other components (6 of ~21 now have tests —
+- Not covered yet: most other components (7 of ~21 now have tests —
   `ToolApprovalModal`/`Toast`/`Sparkline`/`FreshnessBadge`/
-  `CameraActiveIndicator`/`VmPromptModal` were the highest-value, most
-  tractable ones so far; `CommandPalette`, the intelligence panels, and
-  `EventDetailPanel` are reasonable next targets), anything involving a
+  `CameraActiveIndicator`/`VmPromptModal`/`CommandPalette`; the intelligence
+  panels and `EventDetailPanel` are reasonable next targets), anything involving a
   real WebGL/Canvas context (`Orb`, `Globe` — jsdom has no WebGL, these
   need a real browser, which is why they're verified live via Playwright
   instead, same reasoning as VM/network-dependent code below), anything
