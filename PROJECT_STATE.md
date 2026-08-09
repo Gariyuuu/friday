@@ -149,13 +149,24 @@ and one server (the VM) doesn't need a general HTTP API's flexibility.
   confirmed no regression on plain single-shot `browse`/`shell` tasks.
   Wired into voice too: `browse_on_vm`'s `steps` parameter accepts a JSON
   array as a string (kept simple rather than widening the whole voice
-  tool-schema type for one parameter). The Quick Actions UI prompt
-  deliberately stays URL-only for now — a full step-builder UI is a
-  separate, larger piece of scope, not attempted this round.
+  tool-schema type for one parameter).
+- **Quick Actions step-builder UI, added same session — Phase 9's last
+  open item, now closed**: `VmPromptModal`'s browse mode gained a real
+  UI for building click/type/wait/screenshot sequences (add/remove rows,
+  action dropdown, conditional selector/text fields, capped at 10 steps
+  to match the server-side limit) — no longer voice-only. Paired with a
+  new `VmResultModal`: previously a task's result only produced a terse
+  toast, so screenshots (real returned data) had nowhere to appear;
+  now a panel shows the full result (stdout/stderr/error, title/url/text,
+  per-step outcomes, and screenshots as real clickable images opening
+  full-size via a data URL). **Verified fully end-to-end through the real
+  app and the real VM**: built a real click→type→screenshot sequence
+  through the actual UI, approved it, and confirmed all three steps
+  succeeded with the screenshot rendering as a genuine image — zero
+  console errors.
 - **Not built yet**: the DigitalOcean API token being needed again for any
   future resize/destroy/snapshot (never persisted, by design — see Phase 8
-  below), and a Quick Actions UI for constructing multi-step sequences
-  (voice-only for that specific capability today).
+  below).
 
 ## Phase 8 — Cloud VM infrastructure (droplet live, hardened, in use by Phase 9)
 
@@ -265,8 +276,13 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 150 tests (20 files) across this session (in
-six rounds):
+Went from 2 tests (1 file) to 165 tests (21 files) across this session (in
+seven rounds). Most recently: `VmPromptModal`'s expanded test suite (18 —
+step add/remove, the type-only text field, the 10-step cap, submitting the
+built sequence with blank selectors trimmed, resetting after submit) and a
+new `VmResultModal.test.tsx` (8 — success/failure headers, title/url,
+stdout/stderr, step results, screenshot rendering, close via button/
+backdrop). Earlier rounds:
 
 - `vitest.setup.ts` added (jest-dom matchers, RTL auto-`cleanup()` after
   each test) — needed for component tests, the first in this repo. Later
@@ -384,11 +400,14 @@ six rounds):
 
 ## Next
 
-- A Quick Actions UI for building multi-step browser sequences (currently
-  voice-only for that specific capability).
 - User verification needed (carried over): gesture-recognition feel with a
   real hand; click the autostart toggle once if desired.
 - `pnpm desktop:build` — needs a bundled Node server sidecar, not attempted.
+- Phase 9 has no more explicitly flagged open items as of this session —
+  everything scoped for this arc (shell + browse execution, multi-step
+  interaction, the SSRF fix and its defense-in-depth layers, Quick Actions
+  UI for both single actions and step sequences, a results panel) is built
+  and verified live.
 
 ## Known issues
 

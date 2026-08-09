@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.22.0 — Multi-Step Quick Actions UI + a Results Panel for Screenshots
+
+- **Phase 9's last open item**: `browse_on_vm`'s `steps` (click/type/wait/
+  screenshot sequences) were voice-only until now. `VmPromptModal`'s
+  browse mode gained a real step-builder — add/remove rows, an action
+  dropdown, a CSS selector field (hidden for `screenshot`), a text field
+  (shown only for `type`), capped at 10 steps to match the server-side
+  limit.
+- **New: `VmResultModal`.** Previously a VM task's result only produced a
+  terse toast — screenshots (real returned data) had nowhere to appear at
+  all. Now, once a task resolves, a panel shows the full result: stdout/
+  stderr/error, browsed page title+url+text, per-step outcomes, and any
+  screenshots rendered as real, clickable images (opens full-size via a
+  data URL, no extra request needed).
+- **Verified fully end-to-end through the real app and the real VM, not
+  just component tests**: built a real click→type→screenshot sequence
+  through the actual UI, approved it, and confirmed all three steps
+  succeeded and the screenshot rendered as a real image in the results
+  panel — zero console errors.
+- 165 tests across 21 files now (up from 150): 18 for the expanded
+  `VmPromptModal` (step add/remove, the type-only text field, the 10-step
+  cap, submitting the built sequence with blank selectors trimmed out,
+  resetting after submit) and 8 for `VmResultModal` (success/failure
+  headers, title/url, stdout/stderr, step results, screenshot rendering,
+  close via button and backdrop).
+
 ## 0.21.0 — All Intelligence Panels Tested
 
 - 150 tests across 20 files now (up from 123). Added `NewsPanel` (5 —

@@ -13,7 +13,7 @@ const { VmPromptModal } = await import("../VmPromptModal");
 
 describe("VmPromptModal", () => {
   beforeEach(() => {
-    useUiStore.setState({ vmPromptMode: null });
+    useUiStore.setState({ vmPromptMode: null, vmResult: null });
     useToastStore.setState({ toast: null });
     vi.mocked(runOnVm).mockReset();
     vi.mocked(browseOnVm).mockReset();
@@ -91,7 +91,7 @@ describe("VmPromptModal", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
-    expect(browseOnVm).toHaveBeenCalledWith("https://example.com");
+    expect(browseOnVm).toHaveBeenCalledWith("https://example.com", undefined);
     expect(runOnVm).not.toHaveBeenCalled();
   });
 
@@ -149,6 +149,100 @@ describe("VmPromptModal", () => {
 
     await waitFor(() => {
       expect(useToastStore.getState().toast?.text).toBe("VM shell — network down");
+    });
+  });
+
+  it("stores the resolved result in vmResult for VmResultModal to display", async () => {
+    vi.mocked(runOnVm).mockResolvedValue({ ok: true, stdout: "done" });
+    act(() => useUiStore.setState({ vmPromptMode: "shell" }));
+    render(<VmPromptModal />);
+
+    fireEvent.change(screen.getByPlaceholderText("echo hello"), { target: { value: "echo hi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().vmResult).toEqual({ ok: true, stdout: "done" });
+    });
+  });
+
+  describe("step builder (browse mode only)", () => {
+    it("is not shown in shell mode", () => {
+      act(() => useUiStore.setState({ vmPromptMode: "shell" }));
+      render(<VmPromptModal />);
+      expect(screen.queryByText("+ Add step")).not.toBeInTheDocument();
+    });
+
+    it("adds and removes a step row", () => {
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      render(<VmPromptModal />);
+
+      fireEvent.click(screen.getByText("+ Add step"));
+      expect(screen.getByPlaceholderText("CSS selector")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("Remove step 1"));
+      expect(screen.queryByPlaceholderText("CSS selector")).not.toBeInTheDocument();
+    });
+
+    it("shows a text input only for the 'type' action", () => {
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      render(<VmPromptModal />);
+      fireEvent.click(screen.getByText("+ Add step"));
+
+      expect(screen.queryByPlaceholderText("text to type")).not.toBeInTheDocument();
+      fireEvent.change(screen.getByRole("combobox"), { target: { value: "type" } });
+      expect(screen.getByPlaceholderText("text to type")).toBeInTheDocument();
+    });
+
+    it("caps at 10 steps, disabling Add step", () => {
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      render(<VmPromptModal />);
+      const add = screen.getByText("+ Add step");
+      for (let i = 0; i < 10; i++) fireEvent.click(add);
+      expect(add).toBeDisabled();
+    });
+
+    it("submits the built step sequence to browseOnVm, trimming blank selectors out of click/type steps", () => {
+      vi.mocked(browseOnVm).mockReturnValue(new Promise(() => {}));
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      render(<VmPromptModal />);
+
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://example.com" },
+      });
+
+      // A click step with a real selector.
+      fireEvent.click(screen.getByText("+ Add step"));
+      fireEvent.change(screen.getByPlaceholderText("CSS selector"), { target: { value: "#go" } });
+
+      // A screenshot step (no selector needed/shown).
+      fireEvent.click(screen.getByText("+ Add step"));
+      const selects = screen.getAllByRole("combobox");
+      fireEvent.change(selects[1]!, { target: { value: "screenshot" } });
+
+      fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+      expect(browseOnVm).toHaveBeenCalledWith("https://example.com", {
+        steps: [
+          { action: "click", selector: "#go", text: undefined },
+          { action: "screenshot", selector: undefined, text: undefined },
+        ],
+      });
+    });
+
+    it("resets the step list after a successful submit", () => {
+      vi.mocked(browseOnVm).mockReturnValue(new Promise(() => {}));
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      const { rerender } = render(<VmPromptModal />);
+
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://example.com" },
+      });
+      fireEvent.click(screen.getByText("+ Add step"));
+      fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+      act(() => useUiStore.setState({ vmPromptMode: "browse" }));
+      rerender(<VmPromptModal />);
+      expect(screen.queryByPlaceholderText("CSS selector")).not.toBeInTheDocument();
     });
   });
 });

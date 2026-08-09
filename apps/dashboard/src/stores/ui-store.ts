@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { VmToolResult } from "@/lib/tools/client";
 
 export type UiMode = "orb" | "intelligence" | "settings";
 export type GraphicsQuality = "low" | "balanced" | "cinematic";
@@ -11,6 +12,10 @@ interface UiStoreState {
   focusedEventId: string | null;
   graphicsQuality: GraphicsQuality;
   vmPromptMode: VmPromptMode | null;
+  /** Set once a VM task (started from VmPromptModal) resolves — shown in
+   *  VmResultModal. Separate from the prompt itself, which already closed
+   *  immediately on submit (see VmPromptModal's own comment on why). */
+  vmResult: VmToolResult | null;
   setMode: (mode: UiMode) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
@@ -18,6 +23,7 @@ interface UiStoreState {
   setGraphicsQuality: (quality: GraphicsQuality) => void;
   openVmPrompt: (mode: VmPromptMode) => void;
   closeVmPrompt: () => void;
+  setVmResult: (result: VmToolResult | null) => void;
 }
 
 export const useUiStore = create<UiStoreState>((set) => ({
@@ -26,6 +32,7 @@ export const useUiStore = create<UiStoreState>((set) => ({
   focusedEventId: null,
   graphicsQuality: "balanced",
   vmPromptMode: null,
+  vmResult: null,
   setMode: (mode) => set({ mode }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
@@ -33,4 +40,5 @@ export const useUiStore = create<UiStoreState>((set) => ({
   setGraphicsQuality: (quality) => set({ graphicsQuality: quality }),
   openVmPrompt: (mode) => set({ vmPromptMode: mode }),
   closeVmPrompt: () => set({ vmPromptMode: null }),
+  setVmResult: (result) => set({ vmResult: result }),
 }));

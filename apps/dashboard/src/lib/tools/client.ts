@@ -43,7 +43,7 @@ export interface VmBrowseStep {
   timeoutMs?: number;
 }
 
-interface VmToolResult {
+export interface VmToolResult {
   ok: boolean;
   stdout?: string;
   stderr?: string;
