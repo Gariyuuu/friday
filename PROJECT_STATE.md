@@ -467,6 +467,15 @@ backdrop). Earlier rounds:
   configured with it. Not a bug.
 - Tool invocation during voice isn't guaranteed every turn (`tool_choice:
   "auto"`).
+- **Real, reproduced bug, not yet fixed**: `disconnectVoice()` while a
+  session is still `CONNECTING` (not yet `READY`) doesn't cancel the
+  in-flight `connectVoice()` call — the earlier `await next.connect()`
+  can resolve afterward and silently reconnect, leaving voice active
+  again despite the user having just ended it. Found while verifying the
+  double-tap-K shortcut (0.27.0) by disconnecting too quickly; confirmed
+  it disappears when disconnecting only after full `READY` state.
+  Pre-existing, not introduced by that change. Needs a cancellation
+  token/generation counter in `voice-controller.ts`'s `connectVoice()`.
 - Gesture recognition accuracy against a real hand is unverified.
 - Autostart enable/disable unverified beyond "initializes without crashing."
 - Vitest ESM/CJS config warning (harmless); `next typegen` must run before

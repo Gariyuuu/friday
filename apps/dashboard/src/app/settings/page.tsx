@@ -141,9 +141,11 @@ export default function SettingsPage() {
                 Chosen over LiveKit — no separate server to run, and cheaper for
                 personal, low-volume use. Needs{" "}
                 <code className="text-text-dim">OPENAI_API_KEY</code> with Realtime
-                API access. Once set, press{" "}
-                <code className="text-text-dim">⌥ + V</code> anywhere in the app
-                to start talking.
+                API access. Once set, double-tap{" "}
+                <code className="text-text-dim">K</code> anywhere in the app
+                (not while typing in a text field) to start talking, or press{" "}
+                <code className="text-text-dim">⌥ + V</code>, which also works
+                system-wide when FRIDAY isn&apos;t focused.
               </p>
               {!config?.voice && (
                 <NotConfigured setting="OPENAI_API_KEY" phase="right now — just add the key" />

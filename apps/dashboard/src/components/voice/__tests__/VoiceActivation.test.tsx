@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useOrbStore } from "@/stores/orb-store";
 import { useToastStore } from "@/stores/toast-store";
 
@@ -67,6 +67,88 @@ describe("VoiceActivation", () => {
 
     fireEvent.keyDown(window, { code: "KeyV", altKey: true });
     expect(toggleVoice).not.toHaveBeenCalled();
+  });
+
+  describe("double-tap K", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("calls toggleVoice when K is pressed twice within the double-tap window", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      render(<VoiceActivation />);
+
+      fireEvent.keyDown(window, { code: "KeyK" });
+      vi.advanceTimersByTime(150);
+      fireEvent.keyDown(window, { code: "KeyK" });
+
+      expect(toggleVoice).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call toggleVoice for a single K press", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      render(<VoiceActivation />);
+
+      fireEvent.keyDown(window, { code: "KeyK" });
+      expect(toggleVoice).not.toHaveBeenCalled();
+    });
+
+    it("does not count two K presses outside the double-tap window as a double-tap", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      render(<VoiceActivation />);
+
+      fireEvent.keyDown(window, { code: "KeyK" });
+      vi.advanceTimersByTime(500);
+      fireEvent.keyDown(window, { code: "KeyK" });
+
+      expect(toggleVoice).not.toHaveBeenCalled();
+    });
+
+    it("does not trigger while typing in an input, textarea, or contentEditable element", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      const { container } = render(
+        <div>
+          <VoiceActivation />
+          <input data-testid="text-input" />
+          <textarea data-testid="text-area" />
+          <div data-testid="editable" contentEditable="true" suppressContentEditableWarning />
+        </div>,
+      );
+
+      for (const testId of ["text-input", "text-area", "editable"]) {
+        const el = container.querySelector(`[data-testid="${testId}"]`)!;
+        fireEvent.keyDown(el, { code: "KeyK" });
+        vi.advanceTimersByTime(100);
+        fireEvent.keyDown(el, { code: "KeyK" });
+      }
+
+      expect(toggleVoice).not.toHaveBeenCalled();
+    });
+
+    it("does not trigger when a modifier is held (e.g. Cmd+K stays reserved for the command palette)", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      render(<VoiceActivation />);
+
+      fireEvent.keyDown(window, { code: "KeyK", metaKey: true });
+      vi.advanceTimersByTime(100);
+      fireEvent.keyDown(window, { code: "KeyK", metaKey: true });
+
+      expect(toggleVoice).not.toHaveBeenCalled();
+    });
+
+    it("ignores auto-repeated keydown events from a held key", () => {
+      vi.mocked(toggleVoice).mockResolvedValue(undefined);
+      render(<VoiceActivation />);
+
+      fireEvent.keyDown(window, { code: "KeyK" });
+      vi.advanceTimersByTime(50);
+      fireEvent.keyDown(window, { code: "KeyK", repeat: true });
+
+      expect(toggleVoice).not.toHaveBeenCalled();
+    });
   });
 });
 

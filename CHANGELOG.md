@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.27.0 — Double-Tap K to Talk
+
+- **User preference over ⌥+V**: double-tapping `K` now also toggles voice,
+  in addition to (not replacing) ⌥+V, which still works both in-app and as
+  the system-wide global shortcut. Double-tap only fires when FRIDAY's own
+  window has focus — deliberately NOT registered as a global/system-wide
+  hotkey, since a bare unmodified letter key would intercept normal typing
+  of the letter K in every other app on the Mac. Also guarded against
+  firing: while typing in any input/textarea/contentEditable element (so
+  typing a word containing "kk" anywhere, including FRIDAY's own command
+  palette search box, is unaffected), when a modifier is held (so ⌘K stays
+  reserved for the command palette), and on OS key-repeat events from a
+  held key.
+- **Real bug found and fixed via testing**: the double-tap timer used a
+  plain `0` as its "no previous press" sentinel. Under Vitest's fake
+  timers (which start their clock at exactly 0), the very first-ever K
+  press in a test collided with that sentinel and incorrectly registered
+  as a double-tap. Fixed by using `-Infinity` instead, which can never
+  collide with a real elapsed-time delta regardless of what the clock's
+  origin happens to be — matters for real usage too, not just tests
+  (a real page load's `performance.now()` also starts near 0).
+- **jsdom gap found via testing**: neither `Element.isContentEditable`
+  nor even the simpler `contentEditable` string property is implemented
+  by jsdom (both read back `undefined` even with the attribute set) —
+  switched the editable-target check to read the raw `contenteditable`
+  attribute directly, which is both jsdom-compatible and spec-correct.
+- **Separate, pre-existing bug found while verifying this live, not
+  introduced by this change**: clicking "End call" while a connection is
+  still `CONNECTING` (not yet fully `READY`) doesn't actually cancel the
+  in-flight `connectVoice()` call — it can finish afterward and silently
+  reconnect. Reproduced with a real voice session, confirmed it disappears
+  when disconnecting only after full `READY` state. Not fixed here (out
+  of scope for a keybinding change); flagged for a future session.
+- 6 new tests for the double-tap logic (touch/no-touch/modifier/repeat/
+  editable-target cases); `VoiceActivation` and `CommandPalette`/`OrbStage`
+  copy updated to mention both shortcuts.
+
 ## 0.26.0 — `desktop:build` Actually Works Now (0.25.0's version was a launch-in-place false positive)
 
 - **The `.app` from 0.25.0 only ever worked when run directly from its

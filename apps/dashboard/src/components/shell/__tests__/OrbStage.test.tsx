@@ -49,7 +49,7 @@ describe("OrbStage", () => {
 
   it("shows the idle state copy and no voice controls when not connected", () => {
     render(<OrbStage />);
-    expect(screen.getByText("Press ⌥ + V to talk, or ⌘K for commands.")).toBeInTheDocument();
+    expect(screen.getByText("Tap K twice to talk (⌥ + V works too), or ⌘K for commands.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "End call" })).not.toBeInTheDocument();
   });
 

@@ -10,7 +10,7 @@ import { useGestureStore } from "@/stores/gesture-store";
 import { useOrbStore } from "@/stores/orb-store";
 
 const STATE_COPY: Record<string, string> = {
-  idle: "Press ⌥ + V to talk, or ⌘K for commands.",
+  idle: "Tap K twice to talk (⌥ + V works too), or ⌘K for commands.",
   listening: "Listening…",
   thinking: "Thinking…",
   searching: "Searching…",
