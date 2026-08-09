@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>FRIDAY needs microphone access for voice conversations (⌥+Space to talk).</string>
+	<string>FRIDAY needs microphone access for voice conversations (⌥+V to talk).</string>
 	<key>NSCameraUsageDescription</key>
 	<string>FRIDAY needs camera access for optional hand-gesture controls, which you can enable in Settings.</string>
 </dict>

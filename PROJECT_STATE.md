@@ -439,12 +439,18 @@ backdrop). Earlier rounds:
 - User verification needed (carried over): gesture-recognition feel with a
   real hand (including the newer orb-resize gesture); click the autostart
   toggle once if desired.
-- `pnpm desktop:build` is real now (see `## Performance`/`CHANGELOG.md`'s
-  0.25.0 entry) — `~/Applications/FRIDAY.app` is the genuine standalone
-  distributable, not the old dev-mode wrapper. Remaining gap: DMG
-  packaging fails in this environment on a one-time macOS Automation
-  permission only grantable interactively (not a code issue); the `.app`
-  itself is unaffected.
+- `pnpm desktop:build` is genuinely real now (see `CHANGELOG.md`'s 0.26.0
+  entry — 0.25.0 had claimed this but only worked when launched in place;
+  0.26.0 fixed a real pnpm/Tauri node_modules-bundling bug and verified
+  by launching the actual `~/Applications/FRIDAY.app` fresh, twice).
+  `~/Applications/FRIDAY.app` is the genuine standalone distributable
+  (proper "FRIDAY" name/icon, current version number, no stale ⌥+Space
+  reference), not the old dev-mode wrapper. Remaining gap: DMG packaging
+  fails in this environment on a one-time macOS Automation permission
+  only grantable interactively (not a code issue); the `.app` itself is
+  unaffected. Bundle is ~2GB (see `ARCHITECTURE.md` for why) — acceptable
+  for personal single-machine use, would need slimming for wider
+  distribution.
 - Phase 9 has no more explicitly flagged open items as of this session —
   everything scoped for this arc (shell + browse execution, multi-step
   interaction, the SSRF fix and its defense-in-depth layers, Quick Actions
@@ -452,7 +458,7 @@ backdrop). Earlier rounds:
   and verified live.
 - Nothing else is currently flagged as open — the standing optimization
   backlog (test coverage, Globe FPS, bundle re-profiling, `desktop:build`)
-  was cleared this round; see `CHANGELOG.md`'s 0.25.0 entry.
+  was cleared this round; see `CHANGELOG.md`'s 0.25.0/0.26.0 entries.
 
 ## Known issues
 

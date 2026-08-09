@@ -37,6 +37,35 @@ the main window to it. The window's `frontendDist` (`apps/dashboard/public/`)
 only ever shows a brief "Starting F.R.I.D.A.Y.…" placeholder in the moment
 before that navigation happens.
 
+**`node_modules` for the bundle comes from `pnpm deploy`, not `next build`'s
+own standalone tracer — and gets rewritten again after that.** Found by
+testing, not assumed: Tauri's `resources` bundler drops every symlink it
+encounters, and pnpm's whole node_modules layout is built from symlinks (a
+package's real files live once in `.pnpm/<pkg>@<hash>/node_modules/<pkg>`,
+and everything else that "has" that package is a symlink to it) — so a
+naive copy of either the tracer's output or a fresh `pnpm deploy` ships
+with client node_modules effectively empty and crashes immediately with
+"Cannot find module 'next'". Dereferencing (`cp -L`) fixes *that*, but
+breaks something else: Next's own internal requires (e.g.
+`require('@swc/helpers/...')`) resolve via Node's normal ancestor-walk from
+`next`'s own file location, which only passes through `next`'s sibling
+dependencies while `next` still physically lives inside its pnpm-isolated
+`node_modules/` folder. Flattening `next` out to a plain top-level
+directory removes those ancestors from the walk, and it breaks with
+`Cannot find module '@swc/helpers/_/_interop_require_default'` — reproduced
+with plain `cp`, `rsync`, and even with `@swc/helpers` itself restored as a
+working symlink, so it's really about where `next` itself sits, not any
+one dependency or copy tool. The fix (same idea as classic npm/yarn
+hoisting): after dereferencing each top-level package, also copy its own
+pnpm-isolated siblings into its own `node_modules/` subfolder, so the
+ancestor walk finds them without needing any symlink at all. Confirmed with
+a live server round trip after being copied to a brand new location, not
+just `require()`. Trade-off worth knowing: this makes the bundle
+considerably larger (~2GB, since content that `.pnpm`'s dedup normally
+shares gets a duplicate copy under each package that needs it) — acceptable
+for a personal, single-machine app; would need real work to slim down for
+wider distribution.
+
 ```
 apps/dashboard/src-tauri/   Tauri v2 native shell — Rust, points at the Next.js
                               server rather than bundling static files (see above).

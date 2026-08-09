@@ -76,6 +76,9 @@ pub fn run() {
                             CommandEvent::Stderr(line) => {
                                 log::warn!("[server] {}", String::from_utf8_lossy(&line));
                             }
+                            CommandEvent::Terminated(payload) => {
+                                log::warn!("[server] process terminated: {payload:?}");
+                            }
                             _ => {}
                         }
                     }

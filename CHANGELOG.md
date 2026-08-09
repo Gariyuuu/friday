@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.26.0 — `desktop:build` Actually Works Now (0.25.0's version was a launch-in-place false positive)
+
+- **The `.app` from 0.25.0 only ever worked when run directly from its
+  build directory — it crashed instantly the moment it was copied
+  anywhere else**, including to `~/Applications`, which is the entire
+  point of a distributable build. Missed the first time because the
+  verification then happened to run the binary in place. Caught this
+  round by explicitly testing from `~/Applications` with `open`, the
+  real user launch path.
+- **Root cause, found through direct testing rather than guessing**:
+  Tauri's `resources` bundler drops every symlink it copies, and pnpm's
+  node_modules layout is built almost entirely from symlinks — so the
+  shipped app's node_modules was silently empty, crashing with "Cannot
+  find module 'next'". Dereferencing symlinks fixed that but broke a
+  second, unrelated thing: Next's own internal requires (e.g.
+  `@swc/helpers`) resolve via Node walking up from `next`'s own real file
+  location, which only works while `next` stays nested inside its
+  pnpm-isolated folder — flattening it out removed that context and broke
+  with a different "Cannot find module" error, reproduced identically
+  across `cp`, `rsync`, and multiple copy strategies before being
+  root-caused with a deliberately minimal, single-variable reproduction.
+- **The actual fix**: `pnpm deploy` (pnpm's own tool for this exact
+  problem) for a clean node_modules, dereferenced, then each top-level
+  package's own pnpm-isolated sibling dependencies get hoisted into its
+  own `node_modules/` subfolder — the same thing classic npm/yarn hoisting
+  does — so Node's ancestor walk finds them without any symlink needed at
+  all. Verified with a real server round trip after being copied to a
+  brand new location, then verified again as the actual shipped `.app`,
+  launched fresh from `~/Applications/FRIDAY.app`, twice in a row.
+- **Also solidified while in there**: `productName` was lowercase
+  `"friday"` in `tauri.conf.json`, showing as `friday.app` in Finder/
+  Launchpad instead of `FRIDAY.app` — fixed. The mic-permission prompt
+  still referenced the old ⌥+Space shortcut from before it was renamed to
+  ⌥+V — fixed. Bumped the app's own version from the stale `0.1.0` to
+  match this changelog.
+- Trade-off worth stating plainly: the bundle is now considerably larger
+  (~2GB, since content pnpm normally dedupes gets a real duplicate copy
+  under each package that needs it) — a reasonable cost for a personal,
+  single-machine app; would need real slimming work before this could be
+  distributed more widely.
+
 ## 0.25.0 — The Optimization Backlog: `desktop:build` Real At Last, Globe FPS ~2x, More Tests
 
 - **`pnpm desktop:build` is finally real**, not just `desktop:dev`. Added
