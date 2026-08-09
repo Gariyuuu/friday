@@ -64,6 +64,16 @@ describe("voice-controller", () => {
     expect(update.session.tool_choice).toBe("auto");
   });
 
+  it("sends real instructions covering hand gestures (no tool exists for this, so it must be in-prompt)", async () => {
+    await connectVoice();
+    const sent = createdSessions[0]!.send.mock.calls.map((c) => c[0]);
+    const update = sent.find((e) => e.type === "session.update");
+
+    expect(update.session.instructions).toContain("resize");
+    expect(update.session.instructions).toContain("rotate");
+    expect(update.session.instructions).toContain("Camera");
+  });
+
   it("is a no-op the second time if already connected", async () => {
     await connectVoice();
     await connectVoice();

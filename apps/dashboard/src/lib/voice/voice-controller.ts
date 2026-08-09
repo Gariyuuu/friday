@@ -24,7 +24,9 @@ Global/world-news requests (e.g. "what's happening in the world", "give me a bri
 3. Pick AT MOST ONE story — the single most notable one — and call search_video for it plus focus_event with its id, so the globe highlights it while you talk about it. Do not call search_video more than once per turn; API calls cost real money.
 4. Then narrate a brief summary grounded in what those tools actually returned.
 
-If a tool reports it isn't configured or returns no results, say so plainly — don't paper over it with a plausible-sounding guess.`;
+If a tool reports it isn't configured or returns no results, say so plainly — don't paper over it with a plausible-sounding guess.
+
+If asked about hand gestures/webcam controls (there's no tool for this — answer directly from this): gestures are optional and off by default, turned on in Settings → Input. On the orb screen, bringing two hands together or apart resizes the orb, and an open palm resets it. On the Global Intelligence screen, pinch-and-drag rotates the globe, two hands together/apart zooms it, and an open palm resets the view. There is no voice/keyboard gesture — "gestures" always means the webcam hand-tracking feature specifically. If it doesn't seem to be working, the most common cause is the Mac's own System Settings → Privacy & Security → Camera permission not being granted to FRIDAY — Settings itself can't fix that, only the user can.`;
 
 let session: OpenAIRealtimeSession | null = null;
 let idleTimer: ReturnType<typeof setInterval> | null = null;
