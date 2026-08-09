@@ -15,14 +15,16 @@ droplet. Remaining near-term item:
   `browse_on_vm` output) to `search_web`/`recall` if those ever return
   genuinely untrusted (vs. curated API) content.
 
-## Phase 11 finishing touch
+## Phase 11 finishing touch — done
 
-- `pnpm desktop:build` — a real distributable, optionally signed
-  `.app`/`.dmg`. Needs a bundled Node server sidecar (the current
-  `desktop:dev` architecture depends on a live `next dev` process a
-  distributable build can't assume). Only relevant once/if sharing the app
-  with someone else matters — `desktop:dev` + `~/Applications/FRIDAY.app`
-  are sufficient for the current single-user, single-machine use case.
+- `pnpm desktop:build` — a real distributable `.app`, verified end-to-end
+  (built, launched from `~/Applications/FRIDAY.app`, confirmed the bundled
+  Node sidecar comes up and serves the real app). DMG packaging still
+  fails in this environment on a one-time macOS Automation permission
+  (`Not authorized to send Apple events to Finder`) only grantable by the
+  user interactively — the `.app` itself is unaffected and is the real
+  deliverable. See `ARCHITECTURE.md`'s "Why Tauri points at a live server"
+  section for how it works.
 
 ## Longer-term / not yet scheduled
 

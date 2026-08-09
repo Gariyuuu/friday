@@ -3,7 +3,7 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { IntelligenceEvent } from "@friday/types";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type * as THREE from "three";
 import { registerGlobeControls } from "@/lib/gestures/globe-registry";
 import { EventMarker } from "./EventMarker";
@@ -36,23 +36,26 @@ export function Globe({ events, focusedEventId, onSelectEvent, className }: Glob
     return () => registerGlobeControls(null);
   }, []);
 
+  const geolocatedEvents = useMemo(
+    () => events.filter((e) => e.latitude !== undefined && e.longitude !== undefined),
+    [events],
+  );
+
   return (
     <div className={className} data-gesture-target="globe">
-      <Canvas camera={{ position: [0, 0.4, 3.6], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+      <Canvas camera={{ position: [0, 0.4, 3.6], fov: 45 }} gl={{ antialias: false, alpha: true }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[4, 2, 4]} intensity={0.5} />
         <GlobeMesh />
-        {events
-          .filter((e) => e.latitude !== undefined && e.longitude !== undefined)
-          .map((event) => (
-            <EventMarker
-              key={event.id}
-              event={event}
-              radius={GLOBE_RADIUS + 0.02}
-              focused={event.id === focusedEventId}
-              onSelect={onSelectEvent}
-            />
-          ))}
+        {geolocatedEvents.map((event) => (
+          <EventMarker
+            key={event.id}
+            event={event}
+            radius={GLOBE_RADIUS + 0.02}
+            focused={event.id === focusedEventId}
+            onSelect={onSelectEvent}
+          />
+        ))}
         <OrbitControls
           ref={(instance) => registerGlobeControls(instance)}
           enablePan={false}

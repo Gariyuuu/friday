@@ -21,9 +21,21 @@ that only work with a running Node server — a static `next export` cannot incl
 them at all. So `src-tauri/tauri.conf.json`'s `beforeDevCommand` spawns a real
 `next dev` process on a dedicated port (1420, chosen to avoid this machine's
 multi-project dev-server port contention) and Tauri's webview just loads that URL,
-same as pointing a browser at it. `pnpm desktop:build` (a distributable bundle)
-isn't set up yet for the same reason — it needs a bundled Node server sidecar, not
-just static files, and hasn't been attempted.
+same as pointing a browser at it.
+
+`pnpm desktop:build` (the distributable bundle) needed the same problem solved
+for production: `next.config.ts` sets `output: "standalone"`, producing a
+self-contained server bundle; `scripts/prepare-desktop-build.sh` (the
+`beforeBuildCommand`) copies in static assets/`.env.local` that standalone mode
+leaves out. `lib.rs` spawns that server as a Tauri sidecar process on a
+dedicated port (1421, distinct from devUrl's 1420) using a vendored,
+self-contained Node binary (`scripts/vendor-node-sidecar.sh` — deliberately
+*not* the Homebrew-installed `node`, which dynamically links dozens of
+Homebrew-managed dylibs by absolute path and isn't portable outside a
+Homebrew install), waits for the port to accept connections, then navigates
+the main window to it. The window's `frontendDist` (`apps/dashboard/public/`)
+only ever shows a brief "Starting F.R.I.D.A.Y.…" placeholder in the moment
+before that navigation happens.
 
 ```
 apps/dashboard/src-tauri/   Tauri v2 native shell — Rust, points at the Next.js

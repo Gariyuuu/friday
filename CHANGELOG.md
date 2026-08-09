@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.25.0 — The Optimization Backlog: `desktop:build` Real At Last, Globe FPS ~2x, More Tests
+
+- **`pnpm desktop:build` is finally real**, not just `desktop:dev`. Added
+  `output: "standalone"` to `next.config.ts`, a build-prep script
+  (`scripts/prepare-desktop-build.sh`) that copies static assets/`.env.local`
+  into the standalone bundle, and Rust-side sidecar wiring
+  (`tauri-plugin-shell`) that spawns a vendored, self-contained Node binary
+  running the standalone server on launch, waits for it to come up, then
+  navigates the main window to it. **Real, verified end-to-end**: built the
+  actual distributable `.app`, copied it to `~/Applications/FRIDAY.app`
+  (replacing the old dev-mode wrapper), launched it fresh, and confirmed
+  the sidecar process, the listening port, and a working `/api/config`
+  round trip — genuinely standalone, no `pnpm`/terminal/dev-server needed.
+  Two real things found along the way: (1) the Homebrew-installed `node`
+  binary dynamically links dozens of Homebrew-managed dylibs via absolute
+  paths and isn't portable as a sidecar — switched to vendoring the
+  official self-contained nodejs.org build instead (only links standard
+  macOS frameworks, confirmed via `otool -L`); (2) a freshly-copied binary
+  can take meaningfully longer to start on its first launch at a new
+  location (macOS re-verifying its signature) — bumped the sidecar
+  readiness timeout from 15s to 45s after observing a real ~15-20s cold
+  start. DMG packaging specifically still fails in this environment
+  (`Not authorized to send Apple events to Finder`, a one-time macOS
+  Automation permission only grantable interactively) — the `.app` itself
+  is unaffected and is the real deliverable.
+- **Globe FPS roughly doubled** (~55-73 → ~106-119 FPS, measured the same
+  way as the original investigation: real Playwright session, CDP
+  `Performance.getMetrics`, an injected rAF counter). The lever: the
+  globe's `Canvas` had `antialias: true`; disabling it was never actually
+  tried before, only flagged as a candidate. Also memoized the
+  per-frame-recreated filtered-events array. Verified with a visual
+  screenshot (no obvious quality loss on the wireframe at normal zoom) and
+  a functional smoke test (marker click → detail panel still opens,
+  zero console errors).
+- **Bundle re-profiled, no further low-hanging fruit found**: checked
+  whether `@react-three/postprocessing`'s Bloom effect could be
+  lazy-loaded like MediaPipe was — it's used by the *default* graphics
+  quality setting ("balanced"), not just an edge case, so deferring it
+  wouldn't help the typical user the way MediaPipe's deferral did. Import
+  patterns for `three`/`drei` are already reasonably tree-shake-friendly.
+  Honest conclusion: the ~1.1MB dominant chunk is the Three.js/R3F/drei
+  runtime the always-visible Orb genuinely needs; no further split is
+  justified without a much larger effort.
+- **Extended the untrusted-content delimiter** (previously only
+  `browse_on_vm`) to `search_web`'s Tavily snippets — genuinely
+  third-party web content, unlike `recall`'s results (the user's own
+  saved memories), which were deliberately left unwrapped.
+- **29 more tests** (172 → 201): `voice-controller.ts` (7 — the new
+  instructions payload, the idle auto-disconnect timer, the
+  redundant-response-create race not surfacing as a false error),
+  `StatusBar`/`VoiceActivation`/`GestureController`/`OrbStage` (22) — the
+  last of the previously-untested-but-testable components.
+- Doc cleanup: removed a stale "Known issues" line about a
+  long-since-resolved documentation-tampering episode from weeks earlier.
+
 ## 0.24.0 — Three Real Bugs Found From Actually Using the App
 
 User feedback after real hands-on use, not from review: "what's happening in

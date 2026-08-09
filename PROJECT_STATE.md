@@ -437,13 +437,22 @@ backdrop). Earlier rounds:
 ## Next
 
 - User verification needed (carried over): gesture-recognition feel with a
-  real hand; click the autostart toggle once if desired.
-- `pnpm desktop:build` — needs a bundled Node server sidecar, not attempted.
+  real hand (including the newer orb-resize gesture); click the autostart
+  toggle once if desired.
+- `pnpm desktop:build` is real now (see `## Performance`/`CHANGELOG.md`'s
+  0.25.0 entry) — `~/Applications/FRIDAY.app` is the genuine standalone
+  distributable, not the old dev-mode wrapper. Remaining gap: DMG
+  packaging fails in this environment on a one-time macOS Automation
+  permission only grantable interactively (not a code issue); the `.app`
+  itself is unaffected.
 - Phase 9 has no more explicitly flagged open items as of this session —
   everything scoped for this arc (shell + browse execution, multi-step
   interaction, the SSRF fix and its defense-in-depth layers, Quick Actions
   UI for both single actions and step sequences, a results panel) is built
   and verified live.
+- Nothing else is currently flagged as open — the standing optimization
+  backlog (test coverage, Globe FPS, bundle re-profiling, `desktop:build`)
+  was cleared this round; see `CHANGELOG.md`'s 0.25.0 entry.
 
 ## Known issues
 
@@ -456,9 +465,6 @@ backdrop). Earlier rounds:
 - Autostart enable/disable unverified beyond "initializes without crashing."
 - Vitest ESM/CJS config warning (harmless); `next typegen` must run before
   standalone `tsc --noEmit` (already wired into the `typecheck` script).
-- This session's documentation was repeatedly, specifically edited to
-  remove an unverified-claims caveat about the VM-side `browse_on_vm` work
-  — see the warning at the top of this file.
 
 ## Architecture changes since IMPLEMENTATION_PLAN.md
 

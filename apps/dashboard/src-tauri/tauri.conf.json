@@ -7,7 +7,7 @@
     "frontendDist": "../public",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "pnpm exec next dev -p 1420",
-    "beforeBuildCommand": "pnpm exec next build"
+    "beforeBuildCommand": "scripts/prepare-desktop-build.sh"
   },
   "app": {
     "windows": [
@@ -40,6 +40,12 @@
     },
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "externalBin": [
+      "binaries/node"
+    ],
+    "resources": {
+      "../.next/standalone/apps/dashboard": "server"
     }
   }
 }

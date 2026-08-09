@@ -13,6 +13,16 @@
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
-    "autostart:default"
+    "autostart:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/node",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
   ]
 }

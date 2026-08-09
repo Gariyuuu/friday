@@ -59,7 +59,7 @@ pnpm lint
 pnpm typecheck        # runs `next typegen` first — route types (e.g. LayoutProps<"/">) are generated, not shipped
 pnpm test             # vitest
 pnpm desktop:dev       # from apps/dashboard — native window (Tauri); first run compiles Rust, ~1 min
-pnpm desktop:build     # distributable bundle — NOT set up yet, produces a non-working app (see PROJECT_STATE.md)
+pnpm desktop:build     # distributable .app — real, run scripts/vendor-node-sidecar.sh once first
 ```
 
 Run all four after any meaningful change, in `apps/dashboard` or from root via Turbo.
@@ -156,8 +156,8 @@ hand-tracking) is built with zero errors through every part of the pipeline that
 doesn't require a real human hand; Phase 11 native packaging has a menu bar tray
 icon, a real system-wide global shortcut (⌥+V — found and fixed a real Tauri
 capability-permission bug), auto-launch at login, and a launchable
-`~/Applications/FRIDAY.app` wrapper. Multiple real bugs across sessions were
-found and fixed by actually testing against real APIs/real launches/a real VM,
-not caught by review alone — see `PROJECT_STATE.md` for the full breakdown.
-`desktop:build` (distributable signed bundle) still not attempted — needs a
-bundled Node server sidecar, a separate problem from `desktop:dev`.
+`~/Applications/FRIDAY.app` — now a real standalone distributable built via
+`desktop:build` (a bundled Node sidecar running a Next.js standalone server),
+not just a dev-mode wrapper. Multiple real bugs across sessions were found
+and fixed by actually testing against real APIs/real launches/a real VM, not
+caught by review alone — see `PROJECT_STATE.md` for the full breakdown.
