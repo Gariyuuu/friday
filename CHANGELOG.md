@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.29.0 — Text Chat: A Custom-API Alternative to Voice
+
+- **User preference**: OpenAI Realtime voice stays as-is (Phase 4 untouched),
+  but a new typed chat mode gives a faster/quieter path for quick questions,
+  pointed at the user's own AI Platform gateway (`api.gariyuuu.com`, an
+  OpenAI-compatible endpoint) instead of OpenAI. Opens from the Command
+  Palette ("Chat with FRIDAY (Text)") as a docked bottom-right panel with no
+  backdrop — deliberately not a blocking modal like `VmPromptModal`, so it
+  can stay open while the orb/globe behind it keeps running.
+- **Server-side streaming proxy** (`/api/chat`): re-streams only the real
+  text deltas as plain text chunks, never forwards the upstream payload
+  (usage/cost/provider metadata) to the browser. Explicitly has no tool
+  access — no live news/markets/VM/memory — and says so in its own system
+  prompt rather than let the model imply capabilities this path doesn't have.
+- **Real bug found and fixed via live testing, not caught by review**: the
+  streaming `ReadableStream` was originally built the standard way, reading
+  lazily from a `pull()` callback. Under Next.js dev (Turbopack), `pull()`
+  simply stopped being re-invoked after the upstream's last content chunk —
+  all the real text reached the browser, but the final read that would see
+  `done: true` (and call `controller.close()`) never happened, so every
+  request hung until the client gave up. Isolated the bug to the pull-driven
+  adapter specifically (not the upstream connection, not Node's fetch) by
+  writing an identical read loop in a plain Node script outside Next.js
+  entirely — it closed in ~40ms. Fixed by pumping the upstream eagerly from
+  `start()` with a `while` loop instead of relying on `pull()` being called
+  again. Verified end-to-end afterward with a real headless-browser session:
+  opened the panel, sent a real message, watched a real streamed reply
+  arrive from the gateway, zero console errors.
+- **Also fixed while touching `/api/config`**: its `vm` field checked
+  `VM_GATEWAY_URL`, a reserved-for-future env var that was never actually
+  set — the real `run_on_vm`/`browse_on_vm` feature has used SSH-based
+  `VM_HOST` since Phase 9. This meant Settings had been silently reporting
+  the VM integration as "not configured" even with it fully working. Fixed
+  to check `VM_HOST`.
+- 15 new tests (`chat-client`'s streaming/error paths, `ChatPanel`'s
+  interaction states).
+
 ## 0.28.0 — Dashboard Layout Fixed (No More Scroll/Empty Gaps), Real Article Photos, Actionable Camera Errors
 
 - **Fixed real layout bug**: the Global Intelligence dashboard's bottom row

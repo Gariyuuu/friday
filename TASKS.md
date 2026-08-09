@@ -6,12 +6,9 @@ the full narrative version of everything here.
 
 ## Queued (not started, no code written)
 
-- [ ] `pnpm desktop:build` — a real distributable, optionally signed
-  `.app`/`.dmg`. Needs a bundled Node server sidecar; not attempted. See
-  `DEPLOYMENT.md`.
-- [ ] Extend the untrusted-content delimiter pattern (currently only
-  wrapping `browse_on_vm` output) to `search_web`/`recall` if those ever
-  return genuinely untrusted (vs. curated API) content.
+- [ ] Optional code-signing/notarization for the `desktop:build` `.app`
+  (it builds and runs unsigned today — fine for local use, would need
+  signing to distribute to anyone else). See `DEPLOYMENT.md`.
 
 ## Needs the user directly (not something a future Claude session can close alone)
 
@@ -47,4 +44,8 @@ the full narrative version of everything here.
   SSH sessions against the real droplet, repeated across sessions
 - [x] Phase 10 — Gestures (MediaPipe hand-tracking, opt-in)
 - [x] Phase 11 — Native packaging (Tauri: tray icon, global shortcut,
-  autostart, `~/Applications/FRIDAY.app` wrapper) — except `desktop:build`
+  autostart, `~/Applications/FRIDAY.app` wrapper, real `desktop:build`
+  distributable — verified by launching from `~/Applications`, not just the
+  build directory)
+- [x] Text chat (0.29.0) — custom-API alternative to voice via the user's
+  own AI Platform gateway; streaming proxy, docked panel, verified live

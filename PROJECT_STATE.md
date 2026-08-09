@@ -251,6 +251,24 @@ all fixed and live-verified this round:
   turn instead of once per notable story.
 See `CHANGELOG.md`'s 0.24.0 entry for full detail.
 
+**2026-08-09, text chat (0.29.0)**: added a typed-chat alternative to voice
+(user preference — voice wasn't a fit for quick text Q&A), pointed at the
+user's own AI Platform gateway instead of OpenAI. Docked bottom-right panel,
+opened via Command Palette, streaming replies through a new `/api/chat`
+proxy route. **Real bug found and fixed via live testing**: the streaming
+`ReadableStream` originally read lazily from `pull()` — under Next.js dev
+(Turbopack), `pull()` stopped being re-invoked after the upstream's last
+content chunk, so the final read that would see `done: true` never
+happened and every request hung indefinitely even though all the real text
+had already reached the browser. Isolated to the pull-driven adapter itself
+(an identical read loop in a plain Node script outside Next.js closed in
+~40ms) and fixed by pumping eagerly from `start()` with a `while` loop
+instead. Verified end-to-end with a real headless-browser session against
+the live gateway. Also fixed `/api/config`'s `vm` field, which had been
+checking the unused `VM_GATEWAY_URL` instead of the actually-used `VM_HOST`
+— Settings had been silently misreporting the VM integration as
+unconfigured. See `CHANGELOG.md`'s 0.29.0 entry.
+
 ## Performance
 
 First real bundle-size measurement of this app, using an actual Playwright
@@ -307,7 +325,11 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-172 tests across 21 files. Most recently: 5 new tests in
+231 tests across 30 files. Most recently: 15 new tests for the text-chat
+feature — `chat-client.test.ts` (5, streaming/error paths against a mocked
+`fetch`) and `ChatPanel.test.tsx` (10, open/close, empty state, message
+rendering, Send/Enter/Shift+Enter/Escape, Clear, disabled-while-sending).
+Before that: 172 tests across 21 files. Most recently at that point: 5 new tests in
 `gesture-controller.test.ts` covering the orb-scale branch (grows/shrinks/
 clamps to 0.6-1.8/resets on open palm when the globe canvas isn't mounted)
 and 2 new tests in `CameraActiveIndicator.test.tsx` for the mode-aware
@@ -499,6 +521,8 @@ backdrop). Earlier rounds:
 - `YOUTUBE_API_KEY`, `SEARCH_API_KEY` (Phase 3 completion).
 - `VM_HOST`, `VM_USER` (this session — replaces a hardcoded source
   constant; see `SECURITY.md`).
+- `AI_PLATFORM_API_KEY`, `AI_PLATFORM_BASE_URL`, `AI_PLATFORM_MODEL` (text
+  chat, 0.29.0) — the user's own OpenAI-compatible gateway, server-side only.
 
 ## Migration notes
 

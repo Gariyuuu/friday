@@ -16,6 +16,10 @@ interface UiStoreState {
    *  VmResultModal. Separate from the prompt itself, which already closed
    *  immediately on submit (see VmPromptModal's own comment on why). */
   vmResult: VmToolResult | null;
+  /** A typed-chat alternative to voice (Command Palette → "Chat with FRIDAY
+   *  (Text)") — a separate overlay, not a UiMode, so it can stay open
+   *  alongside whatever screen is behind it. */
+  chatOpen: boolean;
   setMode: (mode: UiMode) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
@@ -24,6 +28,8 @@ interface UiStoreState {
   openVmPrompt: (mode: VmPromptMode) => void;
   closeVmPrompt: () => void;
   setVmResult: (result: VmToolResult | null) => void;
+  setChatOpen: (open: boolean) => void;
+  toggleChat: () => void;
 }
 
 export const useUiStore = create<UiStoreState>((set) => ({
@@ -33,6 +39,7 @@ export const useUiStore = create<UiStoreState>((set) => ({
   graphicsQuality: "balanced",
   vmPromptMode: null,
   vmResult: null,
+  chatOpen: false,
   setMode: (mode) => set({ mode }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
@@ -41,4 +48,6 @@ export const useUiStore = create<UiStoreState>((set) => ({
   openVmPrompt: (mode) => set({ vmPromptMode: mode }),
   closeVmPrompt: () => set({ vmPromptMode: null }),
   setVmResult: (result) => set({ vmResult: result }),
+  setChatOpen: (open) => set({ chatOpen: open }),
+  toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
 }));

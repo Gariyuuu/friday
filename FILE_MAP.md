@@ -74,6 +74,18 @@ the VM — no other code path exists to do so.
   check current OpenAI docs before touching, since this API has renamed
   things before.
 
+## `apps/dashboard/src/lib/chat/chat-client.ts` + `src/app/api/chat/route.ts`
+
+A typed-chat alternative to voice (0.29.0), pointed at the user's own
+OpenAI-compatible AI Platform gateway instead of OpenAI — separate from
+`lib/voice/`, no tool access, no shared code. `route.ts` is the server-only
+streaming proxy (reads `AI_PLATFORM_API_KEY` etc., never exposes them to
+the client); `chat-client.ts` is the client-only fetch wrapper driving
+`stores/chat-store.ts`, consumed by `components/chat/ChatPanel.tsx`. The
+`ReadableStream` in `route.ts` pumps eagerly from `start()`, not lazily
+from `pull()` — see its doc comment for the real Next.js dev-mode hang this
+avoids.
+
 ## `apps/dashboard/src/components/tools/ToolApprovalModal.tsx`
 
 The approval UI every "ask"-mode tool call shows. Critical-risk tools

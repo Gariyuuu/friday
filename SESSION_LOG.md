@@ -129,6 +129,41 @@ collisions:
   what's actually true now: both VM task types, multi-step interaction, and
   the Quick Actions UI are live-verified, not "claimed but unverified."
 
+## 2026-08-09 — Session 4 continued: optimization backlog, real `desktop:build`, UI redesign, double-tap K, dashboard layout, app icon, and text chat
+
+Several rounds landed this session, each with its own live verification and
+`CHANGELOG.md` entry (0.25.0 through 0.29.0) — summarized here rather than
+repeated in full:
+
+- **0.25.0** — optimization backlog: Globe FPS ~2x via a real CDP-measured
+  fix, more test coverage, doc cleanup.
+- **0.26.0** — `desktop:build` made real, not just claimed: found (via
+  testing the actual installed `~/Applications/FRIDAY.app`, not the build
+  directory) that Tauri's bundler was silently dropping every symlink,
+  leaving `node_modules` empty in the shipped app. Fixed via `pnpm deploy` +
+  full dereference + hoisting; see `DEPLOYMENT.md`.
+- **0.27.0** — double-tap K added alongside ⌥+V for starting voice; found
+  and fixed a fake-timer sentinel bug and a jsdom `contentEditable` gap
+  along the way.
+- **0.28.0** — user-reported dashboard problems (camera not working, ugly
+  layout, empty space, no real data) investigated and mostly fixed: real
+  layout bug (grid rows, panel-internal scroll), real NewsAPI article
+  photos, actionable camera-permission error messages. Camera itself traced
+  as far as possible without hardware access — ruled out Tauri's webview by
+  reading wry's actual source, narrowed to macOS's system Camera permission.
+- **App icon + voice gesture knowledge** (unreleased version bump) — a
+  proper generated icon, and taught the voice model about the gesture
+  feature (it had zero grounding for it before, a knowledge gap, not a
+  runtime bug).
+- **0.29.0** — text chat: a custom-API alternative to voice (user
+  preference) pointed at their own AI Platform gateway. Real bug found and
+  fixed via live testing: the streaming response hung indefinitely under
+  Next.js dev because `pull()`-driven `ReadableStream` reading stopped
+  being re-invoked after the last content chunk; fixed by pumping eagerly
+  from `start()` instead. Also fixed `/api/config`'s `vm` field, which had
+  been checking an unused env var the whole time. See `CHANGELOG.md`'s
+  0.29.0 entry.
+
 ## How to keep this file current
 
 Add an entry each session: date, one-line summary, and either the real

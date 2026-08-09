@@ -28,6 +28,7 @@ export function CommandPalette() {
   const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
   const setMode = useUiStore((s) => s.setMode);
   const openVmPrompt = useUiStore((s) => s.openVmPrompt);
+  const toggleChat = useUiStore((s) => s.toggleChat);
   const router = useRouter();
   const runAction = useToolAction();
   const showToast = useToastStore((s) => s.show);
@@ -110,6 +111,12 @@ export function CommandPalette() {
             className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
           >
             {voiceConnected ? "End Voice Session" : "Talk to FRIDAY (KK or ⌥ + V)"}
+          </Command.Item>
+          <Command.Item
+            onSelect={() => run(() => toggleChat())}
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-raised"
+          >
+            Chat with FRIDAY (Text)
           </Command.Item>
         </Command.Group>
 

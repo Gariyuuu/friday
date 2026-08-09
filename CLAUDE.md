@@ -19,21 +19,24 @@ apps/dashboard/         The whole product today (Next.js 16 App Router)
   src-tauri/              Native macOS shell (Tauri v2, Rust) — points at the live
                             Next.js server, doesn't bundle static files (see ARCHITECTURE.md)
   src/app/                routes + api/intelligence/*, api/tools/*, api/voice/*,
-                            api/memory, api/search, api/video, api/config (server)
-  src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/, gestures/
+                            api/chat, api/memory, api/search, api/video, api/config (server)
+  src/components/         orb/, globe/, intelligence/, shell/, tools/, voice/, chat/, gestures/
   src/stores/              zustand: orb-store, ui-store, tool-store, memory-store,
-                            gesture-store (all persisted where relevant), toast-store
+                            gesture-store (all persisted where relevant), toast-store,
+                            chat-store
   src/lib/                  intelligence/ (server-only real+mock providers incl.
                             search/video), tools/ (registry, approval, run-tool,
                             client), voice/ (WebRTC session, controller, pinned API
                             config, friday-tools.ts — the orchestration/
-                            function-calling layer), memory/ (server-only
-                            node:sqlite), gestures/ (client-only MediaPipe hand
-                            tracking), desktop/ (Tauri-only global shortcut +
-                            autostart, no-op outside Tauri), vm/ (server-only:
-                            SSH-based command channel to the Phase 9 cloud VM —
-                            see ARCHITECTURE.md's "Data flow (VM task
-                            execution)"), logger, demo
+                            function-calling layer), chat/ (client-only fetch
+                            wrapper for /api/chat's streaming proxy — a typed-chat
+                            alternative to voice, no tool access, no secrets on the
+                            client), memory/ (server-only node:sqlite), gestures/
+                            (client-only MediaPipe hand tracking), desktop/
+                            (Tauri-only global shortcut + autostart, no-op outside
+                            Tauri), vm/ (server-only: SSH-based command channel to
+                            the Phase 9 cloud VM — see ARCHITECTURE.md's "Data flow
+                            (VM task execution)"), logger, demo
 packages/types/          Shared Zod schemas — the contract every backend conforms to
 packages/config/         Shared ESLint base for non-Next.js packages
 docs/                    IMPLEMENTATION_PLAN, ARCHITECTURE, SECURITY, PROJECT_STATE

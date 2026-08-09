@@ -23,7 +23,13 @@ export async function GET() {
     // Voice provider is OpenAI Realtime (decided this session — cheaper and no
     // separate infra to run vs. LiveKit). It just needs OPENAI_API_KEY.
     voice: Boolean(process.env.OPENAI_API_KEY),
+    // A typed alternative to voice, pointed at the user's own OpenAI-compatible
+    // gateway (see app/api/chat/route.ts) — separate from `voice` above.
+    chat: Boolean(process.env.AI_PLATFORM_API_KEY),
     memory: Boolean(process.env.DATABASE_URL),
-    vm: Boolean(process.env.VM_GATEWAY_URL),
+    // run_on_vm/browse_on_vm are SSH-based (lib/vm/config.ts's VM_HOST), not
+    // the reserved-for-future VM_GATEWAY_URL — this was checking the wrong
+    // var and always reported false even with the VM fully configured.
+    vm: Boolean(process.env.VM_HOST),
   });
 }

@@ -32,25 +32,48 @@ the app has ~10 API routes a static export can't include (see
 evidence: real page navigation, real API responses, confirmed foreground
 process via `osascript`) — not re-verified live in this documentation pass.
 
-## `~/Applications/FRIDAY.app` — the current "installed app" experience
+## `pnpm desktop:build` — real, distributable, unsigned (0.26.0)
 
-A thin wrapper bundle, not a true standalone build: `Info.plist` + a shell
-script as `CFBundleExecutable` that runs `pnpm desktop:dev` via a login+
-interactive shell (to pick up the normal PATH a GUI launch wouldn't have),
-logging to `~/Library/Logs/FRIDAY/launch.log`. Reuses the real generated
-`.icns` icon. Double-clickable and Spotlight-searchable. First launch needs
-a right-click → Open to clear Gatekeeper's unsigned-app warning (it is not
-code-signed). Verified in a prior session via `open` (LaunchServices), per
-`PROJECT_STATE.md`.
+```bash
+cd apps/dashboard
+scripts/vendor-node-sidecar.sh   # once — vendors a portable Node binary as
+                                  # a Tauri sidecar, gitignored, not committed
+pnpm desktop:build
+```
 
-## `pnpm desktop:build` — NOT set up
+`~/Applications/FRIDAY.app` is now this real standalone build, not a dev-mode
+wrapper (see below) — a self-contained `.app` bundling a vendored Node
+sidecar running Next.js's `output: "standalone"` server on port 1421,
+prepared by `scripts/prepare-desktop-build.sh`. Not code-signed — first
+launch needs a right-click → Open to clear Gatekeeper's warning.
 
-A real distributable, optionally-signed `.app`/`.dmg` bundle. Not attempted
-— per prior session notes, it needs a bundled Node server sidecar (the dev
-setup depends on a live `next dev` process, which a distributable build
-can't assume exists). No config for a sidecar exists in `src-tauri/`,
-confirmed by inspection this session. Running `pnpm desktop:build` today
-would produce a non-functional app per `CLAUDE.md`'s own note.
+**Real bug found and fixed via testing the actual installed location, not
+the build directory**: Tauri's `resources` bundling step silently drops
+every symlink when copying files into the `.app`, which broke
+`node_modules` (pnpm's own store is symlink-heavy) the instant the bundle
+was moved out of its build folder — it only ever "worked" in place, where
+the symlinks still resolved against files still on disk nearby.
+`prepare-desktop-build.sh` now runs `pnpm deploy` for a clean tree, fully
+dereferences it (`cp -RL`), and hoists each package's pnpm-isolated
+sibling dependencies into its own `node_modules/` subfolder (classic
+npm/yarn-style hoisting) — Node's own ancestor-directory-walk resolution
+for a package's nested `require()` calls needs this, not just the top-level
+symlinks. Bundle size grew from ~600MB to ~2GB as a result — an accepted
+trade-off, documented in `ARCHITECTURE.md`. See `CHANGELOG.md`'s 0.26.0
+entry for the full debugging story.
+
+**Lesson, now a standing practice**: always verify a "distributable" build
+by actually launching it from `~/Applications` (or wherever it will really
+run), never just from the build output directory — that's exactly what
+exposed this bug after an earlier session had reported `desktop:build` as
+done based on an in-place launch alone.
+
+## `~/Applications/FRIDAY.app` — the installed app
+
+Since 0.26.0, this is the real `desktop:build` output above (rebuild +
+reinstall after any source change — it does not auto-update). Before
+0.26.0 it was a thin dev-mode wrapper (`Info.plist` + a shell script
+running `pnpm desktop:dev`); that path is no longer used.
 
 ## "Add to Dock" (Safari PWA)
 

@@ -23,6 +23,7 @@ interface ConfigStatus {
     search: boolean;
   };
   voice: boolean;
+  chat: boolean;
   memory: boolean;
   vm: boolean;
 }
@@ -51,6 +52,7 @@ function StatusTag({ ok, onLabel = "Connected" }: { ok: boolean; onLabel?: strin
 type SectionId =
   | "general"
   | "voice"
+  | "chat"
   | "ai"
   | "intelligence"
   | "memory"
@@ -63,6 +65,7 @@ type SectionId =
 const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "general", label: "General" },
   { id: "voice", label: "Voice" },
+  { id: "chat", label: "Chat" },
   { id: "ai", label: "AI" },
   { id: "intelligence", label: "Intelligence" },
   { id: "memory", label: "Memory" },
@@ -149,6 +152,30 @@ export default function SettingsPage() {
               </p>
               {!config?.voice && (
                 <NotConfigured setting="OPENAI_API_KEY" phase="right now — just add the key" />
+              )}
+            </div>
+          )}
+
+          {section === "chat" && (
+            <div className="max-w-md space-y-4">
+              <h2 className="text-xs uppercase tracking-widest text-text-dim">Chat</h2>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-dim">AI Platform gateway (text)</span>
+                <StatusTag ok={config?.chat ?? false} onLabel="Ready" />
+              </div>
+              <p className="text-xs text-text-faint">
+                A typed alternative to voice, pointed at your own OpenAI-compatible gateway instead
+                of OpenAI — open it from the Command Palette (
+                <code className="text-text-dim">⌘K</code> → &ldquo;Chat with FRIDAY (Text)&rdquo;).
+                This mode has no tool access: no live news, markets, VM, or saved memories, since
+                it&apos;s a separate, simpler request path than the voice orchestration layer. Needs{" "}
+                <code className="text-text-dim">AI_PLATFORM_API_KEY</code> (and optionally{" "}
+                <code className="text-text-dim">AI_PLATFORM_BASE_URL</code>/
+                <code className="text-text-dim">AI_PLATFORM_MODEL</code>, which default to your
+                gateway).
+              </p>
+              {!config?.chat && (
+                <NotConfigured setting="AI_PLATFORM_API_KEY" phase="right now — just add the key" />
               )}
             </div>
           )}

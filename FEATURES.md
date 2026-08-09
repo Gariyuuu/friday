@@ -30,9 +30,10 @@ the VM/browser-automation caveats specifically.
 | Gestures (MediaPipe hand-tracking) | 10 | Built, pipeline verified, accuracy unverified | Zero-error pipeline (permission, WASM load, detectForVideo) confirmed via Playwright fake-device flags; real-hand accuracy needs the user |
 | Native packaging (Tauri: tray, global shortcut, autostart) | 11 | Built, verified | Real launch confirmed via logs + `osascript`; autostart toggle click itself unverified (needs real Tauri webview) |
 | `~/Applications/FRIDAY.app` wrapper | 11 | Built, verified | Verified via `open` (LaunchServices), real foreground process confirmed |
-| `desktop:build` (distributable/signed bundle) | 11 | Not built | Needs a bundled Node server sidecar; no config for this exists |
+| `desktop:build` (distributable/signed bundle) | 11 | Live, verified | Real bundled Node sidecar (`prepare-desktop-build.sh`: `pnpm deploy` + full symlink dereference + hoisting) running a standalone Next.js server; verified by launching the actual `~/Applications/FRIDAY.app`, not just the build output directory (0.26.0) |
 | Quick-Actions UI entry for VM tools | 9 | Live, verified | `⌘K` entries for both `run_on_vm` and `browse_on_vm`, including a step-builder for multi-step browse sequences and a results panel that renders returned screenshots |
 | Multi-step browser interaction (click/type/wait/screenshot) | 9 | Live, verified | Up to 10 steps; verified with genuine interaction against real sites (Wikipedia search box, real typed text, real screenshot) |
+| Text chat (custom-API alternative to voice) | — (user request, 0.29.0) | Live, verified | `/api/chat` streams from the user's own AI Platform gateway; no tool access, honest 501 when unconfigured; verified end-to-end via a real headless-browser session (message sent → real streamed reply from the gateway rendered, zero console errors) |
 
 ## Legend
 

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { CameraActiveIndicator } from "@/components/gestures/CameraActiveIndicator";
 import { GestureController } from "@/components/gestures/GestureController";
 import { Toast } from "@/components/shell/Toast";
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ToolApprovalModal />
         <VmPromptModal />
         <VmResultModal />
+        <ChatPanel />
         <Toast />
       </body>
     </html>
