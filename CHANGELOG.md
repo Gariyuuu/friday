@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.16.0 — Bundle Size: Defer MediaPipe Until Gestures Are Enabled
+
+- `lib/gestures/gesture-controller.ts` no longer statically imports
+  `@mediapipe/tasks-vision` (via `HandTracker`) — that import is now
+  dynamic, loaded only inside `enableGestures()`. Previously the whole
+  MediaPipe runtime shipped in the initial bundle on every page load,
+  because `GestureController.tsx` (which pulls this module in) is mounted
+  unconditionally in the root layout, even though gestures are off by
+  default and most sessions never touch them.
+- **Measured, not assumed**: initial JS dropped from 1987KB to 1835KB
+  (152KB, ~7.6%) across matched production builds, verified via a real
+  Playwright session counting actual network bytes. Confirmed gestures
+  still work correctly when enabled: a real browser test (fake camera
+  device) showed zero MediaPipe requests before enabling, and exactly the
+  expected two requests (the local chunk + the real CDN WASM file) after
+  enabling, with zero console errors.
+- **A different optimization attempt was tried and reverted after
+  measuring it made things worse**: dynamically importing `IntelligenceMode`
+  (the globe) so it wouldn't load until the user switches to it seemed like
+  an obvious win, but measured initial bundle size actually went *up*
+  slightly (2045KB vs 1987KB baseline) while only deferring ~29KB — because
+  nearly all the weight there is the Three.js/React Three Fiber runtime the
+  Orb view already needs regardless, so splitting added `next/dynamic`
+  overhead without meaningfully reducing what ships upfront. Not shipped —
+  worth noting so it isn't retried without re-measuring.
+
 ## 0.15.0 — Real Test Coverage for Security-Critical Logic
 
 - Test suite went from 2 tests (1 file) to 37 tests (4 files) by adding

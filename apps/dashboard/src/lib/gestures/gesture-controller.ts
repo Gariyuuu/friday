@@ -2,10 +2,16 @@ import { createLogger } from "@/lib/logger";
 import { useGestureStore } from "@/stores/gesture-store";
 import { detectGesture, type GestureFrame } from "./gesture-detector";
 import { getGlobeCanvas, resetGlobeView } from "./globe-registry";
-import { HandTracker } from "./hand-tracker";
+// Type-only — erased at compile time, contributes zero runtime bundle weight.
+// The real `HandTracker` class (and the @mediapipe/tasks-vision runtime it
+// pulls in) is dynamically imported inside enableGestures() below instead of
+// statically here, so that ~150KB+ dependency is only fetched once a user
+// actually opts into gestures, not on every page load — GestureController.tsx
+// (which imports this module) is mounted unconditionally in the root layout.
+import type { HandTracker } from "./hand-tracker";
 
 const logger = createLogger("UI");
-const tracker = new HandTracker();
+let tracker: HandTracker | null = null;
 
 let wasPinching = false;
 let lastTwoHandDistance: number | null = null;
@@ -92,6 +98,10 @@ function handleFrame(frame: GestureFrame) {
 export async function enableGestures(): Promise<void> {
   const store = useGestureStore.getState();
   try {
+    if (!tracker) {
+      const { HandTracker } = await import("./hand-tracker");
+      tracker = new HandTracker();
+    }
     await tracker.start((result) => {
       useGestureStore.getState().setCameraActive(true);
       handleFrame(detectGesture(result));
@@ -106,7 +116,7 @@ export async function enableGestures(): Promise<void> {
 }
 
 export function disableGestures(): void {
-  tracker.stop();
+  tracker?.stop();
   wasPinching = false;
   lastTwoHandDistance = null;
   useGestureStore.getState().setEnabled(false);
@@ -114,5 +124,5 @@ export function disableGestures(): void {
 }
 
 export function isGesturesActive(): boolean {
-  return tracker.isActive();
+  return tracker?.isActive() ?? false;
 }

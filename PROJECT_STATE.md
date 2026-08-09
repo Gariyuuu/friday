@@ -206,6 +206,34 @@ re-verified live against the actual droplet and through the real app. Test
 coverage was thin (2 tests total) until this session added real unit tests
 for the highest-stakes pure logic — see `## Test coverage` below.
 
+## Performance
+
+First real bundle-size measurement of this app, using an actual Playwright
+session counting network bytes on a production build (`pnpm build && pnpm
+start`), not guessing from source or build-log summaries:
+
+- **Deferred `@mediapipe/tasks-vision` until gestures are enabled**:
+  `gesture-controller.ts` dynamically imports `HandTracker` inside
+  `enableGestures()` instead of statically at module scope. Previously the
+  whole MediaPipe runtime shipped on every page load via
+  `GestureController.tsx` (mounted unconditionally in the root layout)
+  even though gestures are off by default. **Measured**: initial JS
+  1987KB → 1835KB (152KB, ~7.6%). **Verified gestures still work**: real
+  browser test with a fake camera device showed zero MediaPipe requests
+  before enabling, exactly two (local chunk + real CDN WASM) after, zero
+  console errors.
+- **Tried and reverted**: dynamically importing `IntelligenceMode` (the
+  globe) so it wouldn't load until switched to. Measured initial bundle
+  actually went *up* slightly (2045KB vs 1987KB) while only deferring
+  ~29KB, because nearly all the weight is the Three.js/React Three Fiber
+  runtime the Orb view already needs regardless — splitting added
+  `next/dynamic` overhead without a real payoff. Not shipped. Don't retry
+  this without re-measuring; the intuition ("split the code you don't
+  always need") was reasonable, the actual bundler behavior didn't agree.
+- **Not yet measured**: runtime frame rate / memory growth of the orb and
+  globe Three.js scenes over an extended session (only bundle *download*
+  size has been profiled so far, not render performance).
+
 ## Test coverage
 
 Went from 2 tests (1 file) to 37 tests (4 files) this session:
