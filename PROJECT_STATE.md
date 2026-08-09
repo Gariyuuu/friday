@@ -1,32 +1,16 @@
 # Project State
 
-Last updated: 2026-08-08, session 4 continued. Phase 9 has two real VM task
-types (`shell` and `browse`), an app-layer SSRF guard, a prompt-injection
-content wrapper, and the VM host moved out of committed source. Since then:
-a real, measured bundle-size win (deferred MediaPipe load, see
-`## Performance`) and test coverage more than doubled again (37 → 72 tests,
-see `## Test coverage`).
+Last updated: 2026-08-09, session 4 continued. Phase 9 has two real VM task
+types (`shell` and `browse`, including multi-step interaction), a Quick
+Actions UI with a step-builder and a results panel, and a three-layer SSRF
+defense (Mac-side guard, VM-side iptables, and — added this round — a
+VM-side forward proxy that also catches redirect-based SSRF; see
+`## Phase 9` below for why the proxy was needed). Every claim in this
+section has been independently, directly verified via real SSH sessions
+against the real droplet, repeated across multiple sessions — no VM-side
+claim in this document is secondhand.
 
-**A note on verification provenance, since two sessions worked this repo
-concurrently.** This documentation session independently verified, by
-reading the actual code, everything about the `shell` task type's Mac-side
-path and the `browse` task type's Mac-side path, including two real
-application-layer security mitigations (`lib/vm/ssrf-guard.ts` and the
-untrusted-content delimiter in `friday-tools.ts`) added in commit `1769221`.
-The claims about the VM's own infrastructure (a Playwright Docker image,
-`dispatch.sh` branching on task type, a `DOCKER-USER` iptables SSRF fix, a
-systemd hardening unit) were not independently checked by this documentation
-session — no SSH connection to the droplet was opened here. Commit
-`94cc6c6` ("Reconcile documentation after a concurrent-session sync issue"),
-authored under this repo's own git identity, states that those VM-side
-claims were re-verified live against the actual droplet a second time by
-that session. This documentation defers to that on the reasonable assumption
-it's the project owner's own work, while still noting — for anyone reading
-this later — that this specific pass didn't do that check itself. If in
-doubt, the check is cheap: SSH to the droplet and look.
-
-Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date, per the
-reconciliation commit above — not independently re-checked by this pass).
+Repo: https://github.com/Gariyuuu/friday (pushed, fully up to date).
 
 ## Phase 9 — VM gateway/agent software (both task types live and verified)
 
@@ -164,6 +148,28 @@ and one server (the VM) doesn't need a general HTTP API's flexibility.
   through the actual UI, approved it, and confirmed all three steps
   succeeded with the screenshot rendering as a genuine image — zero
   console errors.
+- **Redirect-based SSRF gap found and fixed**: `ssrf-guard.ts` only
+  validates the URL a browse task is *given*, not where an HTTP redirect on
+  the VM-side browser actually lands. First attempt used Playwright's
+  `page.route()` to re-check every navigation; a controlled local test (a
+  redirect server plus a "blocked" target server, run against the real
+  `browse.js`) proved this doesn't work — Chromium in this Playwright
+  version doesn't re-invoke `route()` handlers for a server-side redirect on
+  the main navigation frame, confirmed by the blocked target actually
+  receiving the request when only `page.route()` was used. Replaced with a
+  local forward proxy the browser is launched pointed at (Chromium's
+  `proxy` launch option): HTTP requests get checked and a marked 403 if
+  blocked (detected explicitly so the task reports `ok:false`, not a
+  misleadingly "successful" result with the block page's content), HTTPS
+  CONNECT tunnels to a blocked host are refused outright (surfaces as a
+  real `page.goto()` failure). Re-ran the same controlled test with the
+  proxy in place and confirmed the blocked target's request log stayed
+  completely empty — the connection genuinely never happens now, not just
+  a request that gets a different HTTP response. Deployed to the real
+  droplet, rebuilt `friday-browser:latest`, and re-verified against real
+  infrastructure: a direct request to `169.254.169.254` is blocked, normal
+  browsing (Wikipedia) and the existing multi-step click/type/screenshot
+  flow both still work with zero regressions.
 - **Not built yet**: the DigitalOcean API token being needed again for any
   future resize/destroy/snapshot (never persisted, by design — see Phase 8
   below).

@@ -77,6 +77,58 @@ Two sessions were active in this repo during overlapping windows this day:
   log` for exact commit messages/hashes — this file doesn't repeat them to
   avoid a second, potentially-stale copy of that list).
 
+## 2026-08-07/08 — Session 4 continued: multi-step browsing, test coverage, perf, Quick Actions UI
+
+The documentation-collision episode from the entry above settled once the
+user confirmed directly that the concurrent session wasn't competing
+development work. From that point on, single-session, no further
+collisions:
+
+- `712353b` VM tools added to the Command Palette (Quick Actions, not just
+  voice) — first UI entry point beyond voice for `run_on_vm`/`browse_on_vm`.
+- `8e470c3` Phase 9: multi-step browser interaction (click/type/wait/
+  screenshot, up to 10 steps) — verified with genuine interaction against
+  real sites, not just navigation.
+- `675983f`, `7231961`, `e6e5386`, `7a172df`, `eb6a5fc`, `c19e73d` — a test
+  coverage arc from 2 to 150 tests across 20 files: SSRF guard (found+fixed
+  a real IPv6 bracket-handling bug), gesture detection, the permission
+  engine, intelligence providers, every component including the largest
+  (`CommandPalette`) and all intelligence dashboard panels.
+- `0b55d3b` First runtime bundle-size measurement; deferred MediaPipe's
+  load until gestures are actually enabled (1987KB → 1835KB initial JS,
+  measured before/after on a real production build).
+- `c7f4a94` Multi-step Quick Actions UI: a step-builder for `browse_on_vm`
+  sequences in the command palette, plus a new results panel rendering
+  returned screenshots as real clickable images. Verified end-to-end with
+  a real Playwright session against the real droplet (real 3-step Wikipedia
+  interaction, all steps succeeded, 1 screenshot rendered).
+
+## 2026-08-09 — Session 4 continued: redirect-based SSRF gap closed, docs reconciled
+
+- Closed the one concretely-scoped item this doc set had flagged as still
+  open (`ssrf-guard.ts` doesn't see where an HTTP redirect on the VM-side
+  browser actually lands). First attempt used Playwright's `page.route()`
+  to re-validate each navigation; a controlled local test (a redirect
+  server + a "blocked" target server, run against the actual VM-side
+  `browse.js`) proved that approach doesn't work — Chromium in this
+  Playwright version doesn't re-invoke route handlers for a server-side
+  redirect on the main navigation frame, confirmed by the blocked target
+  actually receiving the request. Replaced with a local forward proxy the
+  browser is launched pointed at, which does cover every hop (HTTP via a
+  marked 403, HTTPS via CONNECT refusal); re-ran the same controlled test
+  and confirmed the blocked target's request log stayed empty. Deployed to
+  the real droplet, rebuilt `friday-browser:latest`, and re-verified both
+  a direct block (`169.254.169.254`) and normal browsing/multi-step
+  interaction (Wikipedia) still work correctly against the real
+  infrastructure.
+- Reconciled this file, `SECURITY.md`, `HANDOFF.md`, `TASKS.md`,
+  `ROADMAP.md`, and `FEATURES.md` — all had drifted out of date relative to
+  `PROJECT_STATE.md` (which was kept current every round) since they were
+  written once during the 2026-08-07 documentation pass and never updated
+  as Phase 9 work continued past that point. Brought them in line with
+  what's actually true now: both VM task types, multi-step interaction, and
+  the Quick Actions UI are live-verified, not "claimed but unverified."
+
 ## How to keep this file current
 
 Add an entry each session: date, one-line summary, and either the real

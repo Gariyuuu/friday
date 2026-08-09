@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.23.0 — Redirect-Based SSRF Gap Closed, a Forward Proxy Replaces a Broken `page.route()` Approach
+
+- **Closed the last concretely-scoped Phase 9 gap**: `ssrf-guard.ts`
+  validates the URL a browse task is given, but not where an HTTP redirect
+  on the VM-side headless browser actually lands.
+- **A real, tested dead end before the real fix**: tried re-validating each
+  navigation via Playwright's `page.route()` first. A controlled local test
+  (a redirect server plus a distinct "blocked" target server) proved this
+  doesn't work — Chromium in this Playwright version never re-invokes
+  `route()` handlers for a server-side redirect on the main navigation
+  frame; only the first hop gets checked. Confirmed by watching the
+  "blocked" server's own request log receive the request anyway.
+- **The actual fix**: launch the VM-side headless browser pointed at a
+  small local forward proxy (`browse.js`, using Node's own `http`/`net`
+  modules, no new dependency) that re-checks every request — including
+  every redirect hop and every subresource — against the same IPv4/IPv6
+  private-range blocklist as the Mac-side guard. HTTP requests to a
+  blocked host get a marked 403 (detected explicitly in `browse.js` so the
+  task correctly reports `ok:false`, not a misleadingly "successful" result
+  containing the block page's own content); HTTPS `CONNECT` tunnels to a
+  blocked host are refused outright, which surfaces as a real
+  `page.goto()` failure through Playwright's normal error path.
+- **Re-verified with the same controlled test methodology**: with the
+  proxy in place, the "blocked" target's request log stayed completely
+  empty — the connection genuinely never happens, not just a different
+  HTTP response. Deployed to the real droplet, rebuilt
+  `friday-browser:latest`, and confirmed against real infrastructure: a
+  direct request to `169.254.169.254` is blocked, normal browsing
+  (Wikipedia) and the existing multi-step click/type/screenshot flow both
+  still work with zero regressions.
+- **Documentation sync**: `SECURITY.md`, `HANDOFF.md`, `TASKS.md`,
+  `ROADMAP.md`, `FEATURES.md`, and `SESSION_LOG.md` had drifted out of date
+  relative to `PROJECT_STATE.md` — written once during an earlier
+  documentation pass and never updated as Phase 9 work continued past that
+  point, so they still described the VM-side as "claimed but not
+  independently verified" long after it had been directly, repeatedly
+  verified via real SSH sessions. Brought back in line with reality.
+
 ## 0.22.0 — Multi-Step Quick Actions UI + a Results Panel for Screenshots
 
 - **Phase 9's last open item**: `browse_on_vm`'s `steps` (click/type/wait/

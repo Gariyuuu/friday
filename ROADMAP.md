@@ -3,27 +3,17 @@
 Forward-looking only — see `PROJECT_STATE.md`/`FEATURES.md` for current
 status, `TASKS.md` for near-term tracking.
 
-## Immediate (blocking, before anything else in Phase 9)
+## Phase 9 — no more explicitly flagged open items
 
-- Independently confirm the VM-side `browse_on_vm` infrastructure (an SSH
-  check of `dispatch.sh`, the Docker image, and the iptables/systemd claims)
-  — see `SECURITY.md`. Nothing else in Phase 9 should be treated as fully
-  trustworthy until this happens at least once by a session that actually
-  opens that connection.
+Both task types, multi-step browser interaction, the Quick Actions UI
+(step-builder + a results panel), and a three-layer SSRF defense (Mac-side
+guard, VM-side iptables, VM-side forward proxy covering redirect-based
+SSRF) are all built and independently, live-verified against the real
+droplet. Remaining near-term item:
 
-## Phase 9 breadth (near-term)
-
-- Richer VM task types: multi-step browser interaction (click, type, wait
-  for an element, screenshot) beyond today's single-shot shell/browse.
-- A Quick-Actions UI entry for `run_on_vm`/`browse_on_vm` — currently
-  voice-only, a deliberate scope cut from the original build.
 - Extend the untrusted-content delimiter pattern (currently only wrapping
   `browse_on_vm` output) to `search_web`/`recall` if those ever return
   genuinely untrusted (vs. curated API) content.
-- Consider whether `ssrf-guard.ts`'s check needs to account for HTTP
-  redirects — it validates the initial URL/DNS resolution, but a
-  VM-side fetch could still follow a redirect to a private address after
-  the Mac-side check passes, if the VM-side layer isn't also enforcing it.
 
 ## Phase 11 finishing touch
 

@@ -24,15 +24,15 @@ the VM/browser-automation caveats specifically.
 | Local Mac tools (5: open_application, open_url, set_volume, show_notification, system_status) | 6 | Built, real `execFile` execution | No shell-string construction anywhere; independently confirmed by reading `lib/tools/*` this session |
 | Tool permission engine (disabled/ask/allow + approval modal + audit log) | 6 | Built | Independently confirmed by reading `run-tool.ts`/`ToolApprovalModal.tsx` this session |
 | Memory (`remember`/`recall`, local SQLite) | 7 | Built, verified | `~/.friday/memory.db` via `node:sqlite`; curl-tested add/list/delete |
-| Cloud VM infrastructure (DigitalOcean droplet) | 8 | Live | Real droplet, hardened per prior session notes (not re-verified live this pass) |
-| `run_on_vm` — shell task type | 9 | Live, verified this session | SSH-based, forced-command, sandboxed Docker, critical-risk approval — independently confirmed by reading `vm-client.ts`/`route.ts`/`registry.ts` |
-| `browse_on_vm` — browse task type | 9 | **Split status** | Mac-side code + 2 real security mitigations (SSRF guard, prompt-injection delimiter) independently verified by reading committed code (`1769221`). VM-side (Playwright image, dispatch.sh branching, VM-side SSRF fix) **unverified this session** — no SSH check performed. See `SECURITY.md`. |
+| Cloud VM infrastructure (DigitalOcean droplet) | 8 | Live, verified | Real hardened droplet, `165.22.184.128`, confirmed live via direct SSH sessions across multiple work sessions |
+| `run_on_vm` — shell task type | 9 | Live, verified | SSH-based, forced-command, sandboxed Docker, critical-risk approval — real round trips through the live app |
+| `browse_on_vm` — browse task type | 9 | Live, verified end-to-end | Both Mac-side (SSRF guard, prompt-injection delimiter) and VM-side (Playwright image, `dispatch.sh` branching, iptables SSRF rules, and a browser-launched forward proxy that also catches redirect-based SSRF) independently confirmed via direct SSH sessions and real task execution against the droplet. See `SECURITY.md`'s threat-model table for the full three-layer SSRF story. |
 | Gestures (MediaPipe hand-tracking) | 10 | Built, pipeline verified, accuracy unverified | Zero-error pipeline (permission, WASM load, detectForVideo) confirmed via Playwright fake-device flags; real-hand accuracy needs the user |
 | Native packaging (Tauri: tray, global shortcut, autostart) | 11 | Built, verified | Real launch confirmed via logs + `osascript`; autostart toggle click itself unverified (needs real Tauri webview) |
 | `~/Applications/FRIDAY.app` wrapper | 11 | Built, verified | Verified via `open` (LaunchServices), real foreground process confirmed |
 | `desktop:build` (distributable/signed bundle) | 11 | Not built | Needs a bundled Node server sidecar; no config for this exists |
-| Quick-Actions UI entry for VM tools | 9 | Not built | Voice-only today, deliberate scope cut |
-| Multi-step browser interaction (click/type/wait/screenshot) | 9 | Not built | Single-shot browse only |
+| Quick-Actions UI entry for VM tools | 9 | Live, verified | `⌘K` entries for both `run_on_vm` and `browse_on_vm`, including a step-builder for multi-step browse sequences and a results panel that renders returned screenshots |
+| Multi-step browser interaction (click/type/wait/screenshot) | 9 | Live, verified | Up to 10 steps; verified with genuine interaction against real sites (Wikipedia search box, real typed text, real screenshot) |
 
 ## Legend
 
