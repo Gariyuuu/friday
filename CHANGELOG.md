@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.21.0 — All Intelligence Panels Tested
+
+- 150 tests across 20 files now (up from 123). Added `NewsPanel` (5 —
+  importance ranking, loading/unavailable states, click-to-select,
+  focused highlighting), `MarketPanel` (5 — positive/negative change
+  styling and sign, the `>= 0` boundary treating exactly 0% as positive,
+  locale-formatted price), `SignalsPanel` (3 — empty-alerts state, alert
+  fields, category tally correctness), `MediaPanel` (3 — not-configured
+  vs. ready states from a mocked `/api/config`, graceful fallback if that
+  fetch itself fails), and `EventDetailPanel` (11 — conditional Region/
+  Confidence fields, source links, and its `RelatedVideos` sub-component's
+  full lifecycle: searching → results / no-results / hidden-when-
+  unconfigured(501), plus confirming a newly selected event's videos
+  don't leak the previous event's stale results).
+- Every intelligence dashboard panel now has real test coverage; only the
+  WebGL-dependent `Orb`/`Globe` components remain (by design — verified
+  live instead, jsdom has no WebGL).
+
 ## 0.20.0 — CommandPalette Tests (the biggest component, fully covered)
 
 - 123 tests across 15 files now (up from 107). `CommandPalette` (16 tests)

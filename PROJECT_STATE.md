@@ -265,14 +265,24 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-Went from 2 tests (1 file) to 123 tests (15 files) across this session (in
-five rounds):
+Went from 2 tests (1 file) to 150 tests (20 files) across this session (in
+six rounds):
 
 - `vitest.setup.ts` added (jest-dom matchers, RTL auto-`cleanup()` after
   each test) — needed for component tests, the first in this repo. Later
   gained `ResizeObserver` and `Element.prototype.scrollIntoView` stubs
   (jsdom implements neither; `cmdk` needs both) — shared by every test,
   not just `CommandPalette`'s.
+- `components/intelligence/__tests__/NewsPanel.test.tsx` (5),
+  `MarketPanel.test.tsx` (5), `SignalsPanel.test.tsx` (3),
+  `MediaPanel.test.tsx` (3), `EventDetailPanel.test.tsx` (11) — every
+  intelligence dashboard panel now has real coverage: importance ranking,
+  loading/unavailable states, positive/negative market styling (including
+  the exactly-0%-counts-as-positive boundary), weather alert rendering,
+  category tallying, the `/api/config`-driven not-configured/ready states,
+  and `EventDetailPanel`'s `RelatedVideos` sub-component's full lifecycle
+  (searching → results/no-results/hidden-when-unconfigured, and confirming
+  a newly selected event doesn't show the previous event's stale videos).
 - `components/shell/__tests__/CommandPalette.test.tsx` (16 tests) — every
   action: navigation, voice connect/disconnect with the correct label, all
   five Quick Actions (including real result-shape formatting for System
@@ -359,18 +369,18 @@ five rounds):
   this testable directly.
 - `lib/__tests__/logger.test.ts` (2 tests, pre-existing) — secret redaction,
   log-level filtering.
-- Not covered yet: most other components (7 of ~21 now have tests —
-  `ToolApprovalModal`/`Toast`/`Sparkline`/`FreshnessBadge`/
-  `CameraActiveIndicator`/`VmPromptModal`/`CommandPalette`; the intelligence
-  panels and `EventDetailPanel` are reasonable next targets), anything involving a
-  real WebGL/Canvas context (`Orb`, `Globe` — jsdom has no WebGL, these
-  need a real browser, which is why they're verified live via Playwright
-  instead, same reasoning as VM/network-dependent code below), anything
-  requiring the real VM/network (intentionally — those are verified live
-  instead, which this project treats as the more meaningful signal for
-  infra-dependent
-  code; see e.g. Phase 9's live verification notes above rather than
-  mocked integration tests for it).
+- Every intelligence dashboard panel is now covered (12 of ~21 components
+  total: `ToolApprovalModal`/`Toast`/`Sparkline`/`FreshnessBadge`/
+  `CameraActiveIndicator`/`VmPromptModal`/`CommandPalette`/`NewsPanel`/
+  `MarketPanel`/`SignalsPanel`/`MediaPanel`/`EventDetailPanel`). Not
+  covered, by design rather than as a gap: anything involving a real
+  WebGL/Canvas context (`Orb`, `Globe`, and their sub-components — jsdom
+  has no WebGL, these need a real browser, verified live via Playwright
+  instead), and anything requiring the real VM/network (also verified live
+  — see Phase 9's notes above rather than mocked integration tests for it).
+  Remaining untested-but-testable components: `StatusBar`, `OrbStage`,
+  `VoiceActivation`, `GestureController` — none flagged as high-value
+  enough yet to prioritize over other work.
 
 ## Next
 
