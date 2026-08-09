@@ -28,11 +28,18 @@ export function IntelligenceMode() {
       className="grid h-full grid-cols-1 gap-3 p-3 lg:grid-cols-[1.1fr_0.9fr] lg:grid-rows-[1fr_auto]"
     >
       <div className="glass-panel relative min-h-[280px] overflow-hidden rounded-lg lg:row-span-2">
-        <div className="pointer-events-none absolute left-4 top-4 z-10">
+        <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2">
+          <span className="h-3 w-0.5 bg-accent/60" />
           <p className="text-mono-status text-[10px] uppercase tracking-widest text-text-dim">
             World / Globe
           </p>
         </div>
+        <span className="pointer-events-none absolute right-4 top-4 z-10 flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+          <span className="text-mono-status text-[10px] uppercase tracking-widest text-success">
+            Live
+          </span>
+        </span>
         <Globe
           events={events}
           focusedEventId={focusedEventId}

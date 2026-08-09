@@ -15,10 +15,13 @@ export function MediaPanel() {
 
   return (
     <section className="glass-panel flex flex-col gap-3 rounded-lg p-4">
-      <header className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-text-dim">
-          Live / Relevant Media
-        </h2>
+      <header className="flex items-center justify-between border-b border-border pb-2">
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-0.5 bg-accent/60" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-dim">
+            Live / Relevant Media
+          </h2>
+        </div>
         <span className="text-mono-status text-[10px] uppercase text-text-faint">
           {configured ? "Ready" : "Not configured"}
         </span>
