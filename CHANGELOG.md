@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.28.0 — Dashboard Layout Fixed (No More Scroll/Empty Gaps), Real Article Photos, Actionable Camera Errors
+
+- **Fixed real layout bug**: the Global Intelligence dashboard's bottom row
+  (Signals/Media) used to be pushed off-screen requiring a page scroll,
+  with large empty gaps in shorter panels, because the grid's second row
+  was `auto`-height (sized to content) instead of sharing space evenly,
+  and panels had no internal scroll of their own — a long news list would
+  just grow the whole page instead of scrolling within its own card.
+  Fixed: the dashboard grid is now `1fr 1fr` (equal rows) and viewport-
+  bounded, with each panel scrolling its own content internally
+  (`overflow-y-auto` + the `min-h-0` grid children need to actually
+  shrink instead of growing to fit content). Verified live: the whole
+  dashboard now fits in the viewport with zero page scroll needed.
+- **Real article photos in the news feed**: NewsAPI returns a real
+  `urlToImage` field per article (confirmed via a live API call, not
+  assumed) that wasn't being used at all. Added `imageUrl` to
+  `IntelligenceEvent`, wired it through, and `NewsPanel` now shows each
+  headline's own real photo as a thumbnail — falling back to the existing
+  importance ring when an article has no image or the image fails to
+  load. No fabricated/placeholder images, ever — only what the real
+  article actually has.
+- **More actionable camera/gesture errors**: `getUserMedia` failures used
+  to surface as a bare browser error name in a toast ("NotAllowedError"),
+  which doesn't tell the user where to actually fix it. Investigated
+  whether Tauri's webview itself was the blocker by reading wry's actual
+  macOS `WKUIDelegate` source — confirmed it auto-grants its own internal
+  media-capture permission unconditionally, so a camera failure in the
+  desktop app is coming from macOS's separate, system-level Camera
+  privacy permission for the FRIDAY.app bundle specifically, which only
+  the user can grant (System Settings → Privacy & Security → Camera).
+  Mapped the common `getUserMedia` DOMException names
+  (`NotAllowedError`/`SecurityError`, `NotFoundError`/
+  `OverconstrainedError`, `NotReadableError`) to plain-language messages
+  that say what's actually wrong and, where relevant, where to fix it.
+- 6 new tests for the error-mapping logic, 5 new for the real-photo
+  fallback chain (image present / absent / fails to load).
+
 ## 0.27.0 — Double-Tap K to Talk
 
 - **User preference over ⌥+V**: double-tapping `K` now also toggles voice,

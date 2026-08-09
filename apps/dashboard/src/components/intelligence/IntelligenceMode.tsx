@@ -25,7 +25,7 @@ export function IntelligenceMode() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="grid h-full grid-cols-1 gap-3 p-3 lg:grid-cols-[1.1fr_0.9fr] lg:grid-rows-[1fr_auto]"
+      className="grid h-full min-h-0 grid-cols-1 gap-3 overflow-hidden p-3 lg:grid-cols-[1.1fr_0.9fr] lg:grid-rows-[1fr_1fr]"
     >
       <div className="glass-panel relative min-h-[280px] overflow-hidden rounded-lg lg:row-span-2">
         <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2">
@@ -48,7 +48,7 @@ export function IntelligenceMode() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid min-h-0 grid-cols-1 gap-3 sm:grid-cols-2">
         <NewsPanel
           events={events}
           freshness={eventsFreshness}
@@ -58,7 +58,7 @@ export function IntelligenceMode() {
         <MarketPanel markets={markets} freshness={marketsFreshness} />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid min-h-0 grid-cols-1 gap-3 sm:grid-cols-2">
         <SignalsPanel
           events={events}
           weatherAlerts={weatherAlerts}

@@ -86,4 +86,37 @@ describe("NewsPanel", () => {
     );
     expect(screen.getByText("Focused one").closest("button")).toHaveClass("border-accent/50");
   });
+
+  it("shows the real article image when imageUrl is present, instead of the importance ring", () => {
+    render(
+      <NewsPanel
+        events={[event({ imageUrl: "https://example.com/photo.jpg" })]}
+        freshness={freshness()}
+        focusedEventId={null}
+        onSelectEvent={vi.fn()}
+      />,
+    );
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("src", "https://example.com/photo.jpg");
+  });
+
+  it("falls back to the importance ring when there is no imageUrl", () => {
+    render(
+      <NewsPanel events={[event()]} freshness={freshness()} focusedEventId={null} onSelectEvent={vi.fn()} />,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the importance ring if the real image fails to load", () => {
+    render(
+      <NewsPanel
+        events={[event({ imageUrl: "https://example.com/broken.jpg" })]}
+        freshness={freshness()}
+        focusedEventId={null}
+        onSelectEvent={vi.fn()}
+      />,
+    );
+    fireEvent.error(screen.getByRole("img"));
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
 });

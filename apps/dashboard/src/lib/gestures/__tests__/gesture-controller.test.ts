@@ -263,3 +263,37 @@ describe("gesture-controller event dispatch", () => {
     });
   });
 });
+
+describe("toActionableGestureError", () => {
+  it("gives an actionable message for a camera-permission-denied error", async () => {
+    const { toActionableGestureError } = await import("../gesture-controller");
+    const err = toActionableGestureError(new DOMException("blocked", "NotAllowedError"));
+    expect(err.message).toContain("System Settings");
+    expect(err.message).toContain("Camera");
+  });
+
+  it("gives an actionable message when no camera device exists", async () => {
+    const { toActionableGestureError } = await import("../gesture-controller");
+    const err = toActionableGestureError(new DOMException("none found", "NotFoundError"));
+    expect(err.message).toBe("No camera found on this Mac.");
+  });
+
+  it("gives an actionable message when the camera is already in use", async () => {
+    const { toActionableGestureError } = await import("../gesture-controller");
+    const err = toActionableGestureError(new DOMException("busy", "NotReadableError"));
+    expect(err.message).toBe("Camera is already in use by another app.");
+  });
+
+  it("passes through an unrelated real Error unchanged", async () => {
+    const { toActionableGestureError } = await import("../gesture-controller");
+    const original = new Error("something else entirely");
+    expect(toActionableGestureError(original)).toBe(original);
+  });
+
+  it("wraps a non-Error thrown value", async () => {
+    const { toActionableGestureError } = await import("../gesture-controller");
+    const err = toActionableGestureError("a plain string");
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe("a plain string");
+  });
+});

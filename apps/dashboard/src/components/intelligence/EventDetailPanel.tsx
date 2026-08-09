@@ -60,7 +60,7 @@ function RelatedVideos({ query }: { query: string }) {
 export function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
   if (!event) {
     return (
-      <section className="glass-panel flex flex-1 flex-col items-center justify-center rounded-lg p-6 text-center">
+      <section className="glass-panel flex h-full min-h-0 flex-col items-center justify-center rounded-lg p-6 text-center">
         <p className="text-sm text-text-faint">
           Select a marker on the globe or a headline to see details and sources here.
         </p>
@@ -69,7 +69,7 @@ export function EventDetailPanel({ event, onClose }: EventDetailPanelProps) {
   }
 
   return (
-    <section className="glass-panel flex flex-1 flex-col gap-3 overflow-y-auto rounded-lg p-4">
+    <section className="glass-panel flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-lg p-4">
       <header className="flex items-start justify-between gap-2">
         <div>
           <span

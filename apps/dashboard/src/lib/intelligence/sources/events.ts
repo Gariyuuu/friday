@@ -24,6 +24,7 @@ interface NewsApiArticle {
   title: string;
   description: string | null;
   url: string;
+  urlToImage: string | null;
   publishedAt: string;
 }
 
@@ -51,6 +52,16 @@ async function fetchCategory(
       const location = getCachedLocation(article.url);
       if (!location) scheduleGeocode(article.url, article.title, summary);
 
+      let imageUrl: string | undefined;
+      if (article.urlToImage) {
+        try {
+          imageUrl = new URL(article.urlToImage).toString();
+        } catch {
+          // NewsAPI's urlToImage is occasionally a malformed or empty string —
+          // skip it rather than pass something invalid down to the Zod schema.
+        }
+      }
+
       return {
         id: article.url,
         title: article.title,
@@ -59,6 +70,7 @@ async function fetchCategory(
         importance: Math.max(0.3, 0.9 - index * 0.1),
         timestamp: article.publishedAt,
         sources: [{ name: article.source.name, url: article.url }],
+        ...(imageUrl ? { imageUrl } : {}),
         // Geocoded in the background (lib/intelligence/sources/geocode.ts) — an LLM
         // extracts a place name, then Nominatim resolves it. Too slow to do inline
         // on a request the user is waiting on, so a marker appears on a later poll

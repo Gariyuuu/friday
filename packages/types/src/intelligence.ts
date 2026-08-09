@@ -45,6 +45,9 @@ export const IntelligenceEvent = z.object({
   timestamp: z.string().datetime(),
   sources: z.array(IntelligenceSource),
   relatedMedia: z.array(MediaItem).optional(),
+  /** The source article's real photo, when the provider returns one (e.g.
+   *  NewsAPI's urlToImage) — never a placeholder or generated image. */
+  imageUrl: z.string().url().optional(),
 });
 export type IntelligenceEvent = z.infer<typeof IntelligenceEvent>;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { DataFreshness, IntelligenceEvent } from "@friday/types";
+import { useState } from "react";
 import { CATEGORY_COLOR, CATEGORY_LABEL } from "@/lib/intelligence/category-style";
 import { PanelHeader } from "./PanelHeader";
 
@@ -36,6 +37,29 @@ function ImportanceRing({ importance }: { importance: number }) {
   );
 }
 
+/** The article's own real photo when the provider returned one — never a
+ *  placeholder. Falls back to the importance ring if there's no image, or
+ *  if the real image URL 404s/fails to load. Plain <img>, not next/image —
+ *  arbitrary external news-site domains, not worth a remote-pattern
+ *  allowlist entry per source. */
+function Thumbnail({ event }: { event: IntelligenceEvent }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!event.imageUrl || failed) {
+    return <ImportanceRing importance={event.importance} />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={event.imageUrl}
+      alt={event.title}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-14 w-14 shrink-0 rounded-md object-cover"
+    />
+  );
+}
+
 interface NewsPanelProps {
   events: IntelligenceEvent[];
   freshness: DataFreshness;
@@ -47,7 +71,7 @@ export function NewsPanel({ events, freshness, focusedEventId, onSelectEvent }: 
   const ranked = [...events].sort((a, b) => b.importance - a.importance);
 
   return (
-    <section className="glass-panel flex flex-col gap-3 rounded-lg p-4">
+    <section className="glass-panel flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-lg p-4">
       <PanelHeader title="Breaking News" freshness={freshness} count={ranked.length} />
 
       {freshness.status === "loading" && ranked.length === 0 && (
@@ -68,7 +92,7 @@ export function NewsPanel({ events, freshness, focusedEventId, onSelectEvent }: 
                   : "border-transparent hover:bg-surface-raised"
               }`}
             >
-              <ImportanceRing importance={event.importance} />
+              <Thumbnail event={event} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span

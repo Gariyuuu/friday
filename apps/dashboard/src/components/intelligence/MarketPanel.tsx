@@ -11,7 +11,7 @@ interface MarketPanelProps {
 
 export function MarketPanel({ markets, freshness }: MarketPanelProps) {
   return (
-    <section className="glass-panel flex flex-col gap-3 rounded-lg p-4">
+    <section className="glass-panel flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-lg p-4">
       <PanelHeader title="Market Monitor" freshness={freshness} count={markets.length} />
 
       {freshness.status === "loading" && markets.length === 0 && (

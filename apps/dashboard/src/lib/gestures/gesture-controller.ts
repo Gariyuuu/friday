@@ -13,6 +13,33 @@ import type { HandTracker } from "./hand-tracker";
 const logger = createLogger("UI");
 let tracker: HandTracker | null = null;
 
+/**
+ * `getUserMedia`'s own error messages ("Permission denied", a bare
+ * DOMException name) aren't actionable on their own — a user has no way to
+ * know from "NotAllowedError" that the fix lives in System Settings, not in
+ * FRIDAY itself. This is especially true in the native app: Tauri's webview
+ * layer (wry) auto-grants its own internal media-capture permission
+ * unconditionally (confirmed by reading wry's actual macOS delegate source,
+ * not assumed) — so a failure here is coming from macOS's own separate,
+ * system-level Camera privacy permission for the FRIDAY.app bundle, which
+ * only the user can grant.
+ */
+export function toActionableGestureError(error: unknown): Error {
+  const name = error instanceof DOMException ? error.name : undefined;
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return new Error(
+      "Camera permission denied — check System Settings → Privacy & Security → Camera → FRIDAY.",
+    );
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return new Error("No camera found on this Mac.");
+  }
+  if (name === "NotReadableError") {
+    return new Error("Camera is already in use by another app.");
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 let wasPinching = false;
 let lastTwoHandDistance: number | null = null;
 let lastOpenPalmAt = 0;
@@ -139,7 +166,7 @@ export async function enableGestures(): Promise<void> {
     logger.error("failed to start hand tracking", { error: String(error) });
     store.setEnabled(false);
     store.setCameraActive(false);
-    throw error;
+    throw toActionableGestureError(error);
   }
 }
 

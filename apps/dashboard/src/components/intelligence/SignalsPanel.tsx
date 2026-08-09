@@ -32,7 +32,7 @@ export function SignalsPanel({ events, weatherAlerts, weatherFreshness }: Signal
   const maxTally = Math.max(1, ...Object.values(tally));
 
   return (
-    <section className="glass-panel flex flex-col gap-4 rounded-lg p-4">
+    <section className="glass-panel flex h-full min-h-0 flex-col gap-4 overflow-y-auto rounded-lg p-4">
       <PanelHeader title="Global Signals" freshness={weatherFreshness} count={weatherAlerts.length} />
 
       <div>

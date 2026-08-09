@@ -14,7 +14,7 @@ export function MediaPanel() {
   }, []);
 
   return (
-    <section className="glass-panel flex flex-col gap-3 rounded-lg p-4">
+    <section className="glass-panel flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-lg p-4">
       <header className="flex items-center justify-between border-b border-border pb-2">
         <div className="flex items-center gap-2">
           <span className="h-3 w-0.5 bg-accent/60" />
