@@ -498,6 +498,13 @@ backdrop). Earlier rounds:
   it disappears when disconnecting only after full `READY` state.
   Pre-existing, not introduced by that change. Needs a cancellation
   token/generation counter in `voice-controller.ts`'s `connectVoice()`.
+- **New this round**: user reported the two-hand pinch-resize gesture still
+  not visibly doing anything after being told how it works. No code bug
+  found — `numHands: 2`, the delta threshold, and the scale clamp in
+  `gesture-controller.ts`/`gesture-store.ts` all look correct. Most likely
+  a real-world limitation (both hands need to be simultaneously inside a
+  laptop webcam's field of view) rather than a code issue, but unconfirmed
+  without camera access to test against.
 - **New this round**: `pnpm desktop:build`'s `.app` bundling succeeds, but
   the subsequent optional `.dmg` step (`bundle_dmg.sh`) fails — the `.app`
   itself is unaffected and was installed to `~/Applications` directly by
