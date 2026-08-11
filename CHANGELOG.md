@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.30.0 — Orb: Sun/Supernova Color Identity, Much Larger Default Size
+
+- **User preference**: replaced the orb's flat cyan identity with a warm
+  amber/orange core blending into a purple rim ("sun and supernova" look).
+  `orb-visuals.ts`'s single `color` field split into `coreColor`/
+  `edgeColor` per state (`error`/`success` keep `coreColor === edgeColor`,
+  i.e. stay flat red/green — those are semantic status colors, not part of
+  the brand identity, left untouched).
+- **Real rendering bug found and fixed via live screenshots, not assumed
+  correct from code alone**: the first implementation computed a genuine
+  per-vertex gradient (a Fresnel-style blend toward the camera's viewing
+  axis, baked once into the core icosahedron's `color` BufferAttribute) but
+  rendered as a flat, washed-out pastel blob — `meshStandardMaterial`'s
+  PBR lighting (ambient/point light + a uniform, non-per-vertex emissive
+  channel) dominated the final pixel so heavily the vertex gradient was
+  barely visible, confirmed by comparing against the already-vivid,
+  already-unlit wireframe shells right next to it. A `console.log` of the
+  computed gradient's min/max confirmed the *data* was correct (0 to 0.98
+  spread) — the bug was in the lighting interaction, not the math. Fixed
+  by switching the core mesh to unlit `meshBasicMaterial` (renders vertex
+  colors exactly as computed, no lighting dependency), with per-vertex
+  brightness boosted above 1.0 at the hot end so Bloom still catches a
+  glow the same way the old emissive channel used to.
+- **Also fixed while investigating a separate "orb won't resize" report**:
+  no code bug found in the two-hand pinch-resize gesture path itself
+  (`numHands: 2` was already correctly configured, the delta threshold and
+  scale clamp both looked reasonable) — most likely a real-world limitation
+  of getting both hands simultaneously inside a laptop webcam's field of
+  view, not fixable in code without a camera to verify against.
+- Orb default size roughly doubled (`min(60vh,480px,85vw)` →
+  `min(88vh,1100px,92vw)`, confirmed via a real rendered canvas measuring
+  792×792px at a 1440×900 viewport) — user asked for it to dominate the
+  screen instead of sitting small and centered.
+- No new tests (this area is WebGL-only, verified live via Playwright
+  screenshots by design, same as every prior orb-visual change).
+
 ## 0.29.0 — Text Chat: A Custom-API Alternative to Voice
 
 - **User preference**: OpenAI Realtime voice stays as-is (Phase 4 untouched),

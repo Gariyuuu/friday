@@ -59,7 +59,7 @@ export function OrbStage() {
       <div className="relative p-8">
         <ReticleCorners />
         <div style={{ transform: `scale(${orbScale})` }}>
-          <Orb className="size-[min(60vh,480px,85vw)]" />
+          <Orb className="size-[min(88vh,1100px,92vw)]" />
         </div>
       </div>
 

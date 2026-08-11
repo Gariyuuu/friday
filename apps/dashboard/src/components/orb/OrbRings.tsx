@@ -46,7 +46,7 @@ export function OrbRings({ orbState }: OrbRingsProps) {
           <mesh>
             <torusGeometry args={[config.radius, 0.004, 8, 128]} />
             <meshBasicMaterial
-              color={ORB_VISUALS[orbState].color}
+              color={ORB_VISUALS[orbState].edgeColor}
               transparent
               opacity={0.4}
             />

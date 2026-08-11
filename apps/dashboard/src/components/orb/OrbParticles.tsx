@@ -55,7 +55,7 @@ export function OrbParticles({ orbState, count }: OrbParticlesProps) {
     if (pointsRef.current) {
       pointsRef.current.rotation.y += 0.0015 + visual.rotationSpeed * 0.001;
       const material = pointsRef.current.material as THREE.PointsMaterial;
-      material.color.set(visual.color);
+      material.color.set(visual.edgeColor);
     }
   });
 
@@ -66,7 +66,7 @@ export function OrbParticles({ orbState, count }: OrbParticlesProps) {
       </bufferGeometry>
       <pointsMaterial
         size={0.02}
-        color={ORB_VISUALS[orbState].color}
+        color={ORB_VISUALS[orbState].edgeColor}
         transparent
         opacity={0.6}
         sizeAttenuation
