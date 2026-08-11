@@ -10,6 +10,7 @@ the VM/browser-automation caveats specifically.
 |---|---|---|---|
 | Orb UI (8 states, Three.js/R3F) | 0/1 | Built | Present in `components/orb/`; drives from real `voiceStatus` in production, fake demo sequence only via explicit "Demo" command-palette action |
 | Intelligence dashboard (globe, news/market/media panels) | 1/2 | Built, verified with real data | `DataFreshness`/`isMock` wired per prior sessions |
+| Globe country highlighting (real boundaries + event-driven highlight) | 2 (0.31.0) | Live, verified | Real `world-atlas`/`d3-geo` boundary data, real point-in-polygon match against geocoded events; verified live — US rendered correctly filled once a batch finished geocoding, with real markers on top |
 | Command palette (⌘K) | 1 | Built | `cmdk`-based, includes Quick Actions |
 | News (NewsAPI) | 3 | Live with real key | Verified against 13+ real headlines, geocoded (see below) |
 | Markets: crypto | 3 | Live, zero config | CoinGecko, no key needed |

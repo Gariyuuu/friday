@@ -269,6 +269,34 @@ checking the unused `VM_GATEWAY_URL` instead of the actually-used `VM_HOST`
 — Settings had been silently misreporting the VM integration as
 unconfigured. See `CHANGELOG.md`'s 0.29.0 entry.
 
+**2026-08-10/11, orb identity + globe country highlighting (0.30.0,
+0.31.0)**: user feedback in two rounds — first "make the orb a sun/
+supernova orange-purple blend, much bigger," then "the orb still feels
+like a bounded box, and the globe is still empty, highlight countries like
+I showed you." Both delivered:
+- Orb core recolored from flat cyan to a real per-vertex orange-to-purple
+  gradient (0.30.0) — found and fixed a real rendering bug where the first,
+  mathematically-correct implementation rendered as a washed-out pastel
+  blob because `meshStandardMaterial`'s lighting drowned out the vertex
+  colors; fixed by switching to unlit `meshBasicMaterial`.
+- Orb canvas restructured to genuinely fill the full viewport edge to edge
+  (0.31.0) instead of a bounded, capped-size square — gesture resize moved
+  from a CSS transform to a Three.js group scale so the starfield around
+  the orb never reveals empty page background. Added a second, wider
+  "deep field" star layer after a real wide-viewport screenshot showed the
+  original halo alone left the edges sparse.
+- Globe now textures real country boundaries onto the sphere (`d3-geo` +
+  `topojson-client` + `world-atlas`, real offline Natural Earth data, no
+  API key) and highlights countries containing real geocoded news events —
+  verified live: the US rendered filled in gold with real event markers on
+  top once the background geocoder had time to resolve a batch. See
+  `CHANGELOG.md`'s 0.30.0/0.31.0 entries for the full detail, including a
+  real (pre-existing, not introduced here) gotcha around `useIntelligenceData`
+  fetching events exactly once with no polling.
+- Still open, unconfirmed without camera access: whether the two-hand
+  pinch-resize gesture itself actually works for the user — no code bug
+  found in either round, see Known Issues.
+
 ## Performance
 
 First real bundle-size measurement of this app, using an actual Playwright
@@ -325,7 +353,13 @@ start`), not guessing from source or build-log summaries:
 
 ## Test coverage
 
-231 tests across 30 files. Most recently: 15 new tests for the text-chat
+234 tests across 31 files. Most recently: 3 new tests in
+`country-geo.test.ts` (real coordinates matched to real countries via
+point-in-polygon, open ocean correctly returns no match) — the orb/globe
+visual work itself (0.30.0/0.31.0) isn't unit tested, verified live via
+Playwright screenshots instead, consistent with this codebase's standing
+rule for WebGL/canvas work. Before that: 231 tests across 30 files, 15 new
+for the text-chat
 feature — `chat-client.test.ts` (5, streaming/error paths against a mocked
 `fetch`) and `ChatPanel.test.tsx` (10, open/close, empty state, message
 rendering, Send/Enter/Shift+Enter/Escape, Clear, disabled-while-sending).

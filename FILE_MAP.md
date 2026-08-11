@@ -101,6 +101,23 @@ by reading this file this session.
   `events.ts` (NewsAPI), `search.ts` (Tavily), `video.ts` (YouTube),
   `geocode.ts` (background place-name extraction + Nominatim), `mock-data.ts`.
 
+## `apps/dashboard/src/lib/globe/` + `src/components/globe/`
+
+Real country-boundary/highlight rendering for the 3D globe (0.31.0) —
+client-only, no secrets. `lib/globe/country-geo.ts` loads real
+`world-atlas` topojson (Natural Earth data, offline, no API key) and
+exposes `countryNameForCoordinate()` (real point-in-polygon via `d3-geo`,
+used to find which country a geocoded news event actually falls in —
+never a hardcoded list). `lib/globe/country-texture.ts` draws country
+borders + event-count highlights onto a canvas, deliberately using the
+same equirectangular convention as `lib/geo.ts`'s `latLonToVector3` so the
+texture aligns with existing event marker positions. `components/globe/
+Globe.tsx`'s `CountryMesh` applies that texture to the sphere (unlit
+`meshBasicMaterial` — see OrbCore.tsx's doc comment for why lit materials
+don't render vertex/texture colors faithfully in this app's lighting
+setup); `GridMesh` is the separate holographic lat/lon wireframe layered
+on top.
+
 ## `apps/dashboard/src/lib/memory/db.ts`
 
 Server-only `node:sqlite` wrapper for `~/.friday/memory.db`. The only file

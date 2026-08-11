@@ -10,7 +10,9 @@ vi.mock("@/lib/voice/voice-controller", () => ({
 // panel, mute/end buttons, gesture scale) doesn't depend on what's inside
 // Orb, so stub it out rather than fighting jsdom for WebGL.
 vi.mock("@/components/orb/Orb", () => ({
-  Orb: () => <div data-testid="orb-stub" />,
+  Orb: ({ orbScale }: { orbScale?: number }) => (
+    <div data-testid="orb-stub" data-orb-scale={orbScale} />
+  ),
 }));
 
 // zustand's persist middleware reads window.localStorage once at
@@ -93,11 +95,14 @@ describe("OrbStage", () => {
     expect(disconnectVoice).toHaveBeenCalledTimes(1);
   });
 
-  it("applies gesture-store's orbScale as a CSS transform on the orb wrapper", () => {
+  it("passes gesture-store's orbScale through to the Orb's 3D scene, not a CSS transform", () => {
     act(() => useGestureStore.setState({ orbScale: 1.4 }));
     render(<OrbStage />);
 
-    const wrapper = screen.getByTestId("orb-stub").parentElement;
-    expect(wrapper).toHaveStyle({ transform: "scale(1.4)" });
+    // Scaled inside the Three.js scene (Orb.tsx wraps the core/rings in a
+    // <group scale={orbScale}>) rather than via CSS on the container, so the
+    // full-bleed starfield around it never reveals empty space at the edges
+    // when the orb itself shrinks or grows.
+    expect(screen.getByTestId("orb-stub")).toHaveAttribute("data-orb-scale", "1.4");
   });
 });

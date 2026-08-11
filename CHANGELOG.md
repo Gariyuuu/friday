@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.31.0 — Orb Fills the Whole Screen, Globe Highlights Real Countries
+
+- **Orb — "never zoom out of the full screen"**: the orb's canvas used to be
+  a bounded, capped-size square centered in the page, with visible flat page
+  background around it — exactly the "rectangular box" feeling the user
+  described. Restructured so the canvas is always `absolute inset-0` (fills
+  its full container edge to edge, whatever the viewport's actual aspect
+  ratio is) and moved gesture-driven resizing from a CSS transform on the
+  container to a Three.js `<group scale={orbScale}>` inside the scene
+  itself — so shrinking/growing the orb via gesture never reveals empty
+  page background at the edges, only ever the starfield.
+- **Real gap found and fixed via a wide-viewport screenshot**: with the
+  canvas now genuinely full-bleed, the existing particle halo (tuned for a
+  small bounded square) left the screen's outer edges looking sparse on a
+  real widescreen monitor — spreading the *same* particles further out only
+  diluted density near the orb without reaching the corners (surface
+  density falls off with the square of radius, not linearly). Fixed with a
+  second, separate `OrbStarfield` layer using a cube-root radius bias
+  (uniform per unit *volume*) reaching much further out, kept outside the
+  orb's own scale group so it doesn't shrink/grow with gestures.
+- **Globe — real country highlighting, not a blank wireframe ball**: added
+  `d3-geo` + `topojson-client` + `world-atlas` (the standard, offline,
+  ~108KB low-res world boundary dataset used across the D3 ecosystem — real
+  Natural Earth data, no API key). Country borders are now drawn onto a
+  canvas texture and mapped onto the globe sphere; countries with real
+  geocoded news events are filled with a warm highlight (brighter with more
+  events), everything else stays a dim outline. Point-in-polygon matching
+  (`d3-geo`'s `geoContains`) determines which real country each geocoded
+  event actually falls in — never a fabricated or hardcoded country list,
+  and countries with zero current events simply get no highlight rather
+  than an invented one.
+- **Real rendering bug found and fixed, same root cause as 0.30.0's orb
+  fix**: the country texture's projection math was verified correct on
+  paper (deliberately matched to the exact equirectangular convention
+  `lib/geo.ts`'s `latLonToVector3` already uses for event markers) and
+  rendered correctly on the first try — continents appeared in the right
+  places immediately. The *highlight* didn't show up in initial screenshots
+  though, which turned out to be a real, separate, pre-existing app
+  characteristic, not a bug in this feature: `useIntelligenceData` fetches
+  events exactly once on mount with no polling, so a screenshot taken
+  before the server's background geocoder finishes resolving a given news
+  batch will simply never show that batch's coordinates client-side for
+  the rest of that page load. Confirmed by re-navigating fresh after the
+  geocoder had time to warm up — the US rendered correctly filled in gold,
+  with real event markers layered on top, on the very next load.
+- 3 new tests (`country-geo.test.ts`, real coordinates for NYC/London/
+  Tokyo/Paris matched to their real countries, open ocean correctly
+  returns no match) — the canvas-texture drawing itself isn't unit tested,
+  consistent with this codebase's standing rule that WebGL/canvas visuals
+  are verified live via Playwright screenshots, not jsdom.
+
 ## 0.30.0 — Orb: Sun/Supernova Color Identity, Much Larger Default Size
 
 - **User preference**: replaced the orb's flat cyan identity with a warm

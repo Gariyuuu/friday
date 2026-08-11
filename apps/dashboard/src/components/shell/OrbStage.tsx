@@ -20,13 +20,13 @@ const STATE_COPY: Record<string, string> = {
   success: "Done.",
 };
 
-/** Purely decorative targeting-reticle corners around the orb — no data, just chrome. */
+/** Purely decorative targeting-reticle corners framing the whole stage — no data, just chrome. */
 function ReticleCorners() {
   const corners = [
-    "left-0 top-0 border-l border-t",
-    "right-0 top-0 border-r border-t",
-    "left-0 bottom-0 border-l border-b",
-    "right-0 bottom-0 border-r border-b",
+    "left-6 top-6 border-l border-t",
+    "right-6 top-6 border-r border-t",
+    "left-6 bottom-6 border-l border-b",
+    "right-6 bottom-6 border-r border-b",
   ];
   return (
     <>
@@ -54,20 +54,24 @@ export function OrbStage() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative flex h-full flex-col items-center justify-center gap-6 px-6"
+      className="relative h-full w-full overflow-hidden"
     >
-      <div className="relative p-8">
-        <ReticleCorners />
-        <div style={{ transform: `scale(${orbScale})` }}>
-          <Orb className="size-[min(88vh,1100px,92vw)]" />
-        </div>
-      </div>
+      {/* Always fills the full stage edge to edge — the orb itself grows/
+          shrinks via `orbScale` inside the 3D scene (see Orb.tsx), not by
+          CSS-scaling this container, so the surrounding starfield never
+          reveals empty page background at the edges regardless of gesture
+          state or viewport shape. */}
+      <Orb className="absolute inset-0 h-full w-full" orbScale={orbScale} />
 
-      {!connected && (
-        <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
-          {STATE_COPY[orbState]}
-        </p>
-      )}
+      <ReticleCorners />
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-6 px-6">
+        {!connected && (
+          <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
+            {STATE_COPY[orbState]}
+          </p>
+        )}
+      </div>
 
       {gesturesEnabled && gestureCameraActive && (
         <p className="text-mono-status absolute bottom-6 left-6 text-[10px] uppercase tracking-widest text-text-faint">
@@ -77,14 +81,18 @@ export function OrbStage() {
 
       <AnimatePresence>
         {connected && (
-          <VoiceCallCard
-            muted={muted}
-            onToggleMute={() => {
-              const next = !muted;
-              setMuted(next);
-              toggleVoiceMute(next);
-            }}
-          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-10 flex justify-center px-6">
+            <div className="pointer-events-auto">
+              <VoiceCallCard
+                muted={muted}
+                onToggleMute={() => {
+                  const next = !muted;
+                  setMuted(next);
+                  toggleVoiceMute(next);
+                }}
+              />
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </motion.div>
