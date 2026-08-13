@@ -44,9 +44,13 @@ export default function Icon() {
             }}
           >
             {/* The core — radial gradient instead of a flat fill, so it
-                reads as a lit sphere rather than a flat disc. */}
+                reads as a lit sphere rather than a flat disc. A small
+                face (eyes + smile) turns it from a cold watching-eye
+                into a friendly little companion star. */}
             <div
               style={{
+                position: "relative",
+                display: "flex",
                 width: 20,
                 height: 20,
                 borderRadius: "50%",
@@ -54,7 +58,24 @@ export default function Icon() {
                   "radial-gradient(circle at 38% 32%, #e8fdff 0%, #6ee7ff 42%, #17b8d9 100%)",
                 boxShadow: "0 0 22px 6px rgba(110,231,255,0.9), 0 0 46px 14px rgba(110,231,255,0.35)",
               }}
-            />
+            >
+              <div style={{ position: "absolute", top: 7, left: 4.5, width: 3, height: 3, borderRadius: "50%", background: "#0a2b33" }} />
+              <div style={{ position: "absolute", top: 7, left: 12.5, width: 3, height: 3, borderRadius: "50%", background: "#0a2b33" }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  left: 6.5,
+                  width: 7,
+                  height: 3,
+                  background: "#0a2b33",
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 3,
+                  borderBottomRightRadius: 3,
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
