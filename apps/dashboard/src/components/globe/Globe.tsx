@@ -78,7 +78,17 @@ export function Globe({ events, focusedEventId, onSelectEvent, className }: Glob
   useEffect(() => () => countryTexture.dispose(), [countryTexture]);
 
   return (
-    <div className={className} data-gesture-target="globe">
+    <div
+      className={className}
+      data-gesture-target="globe"
+      role="img"
+      aria-live="polite"
+      aria-label={
+        geolocatedEvents.length > 0
+          ? `Interactive 3D globe showing ${geolocatedEvents.length} intelligence event location${geolocatedEvents.length === 1 ? "" : "s"}. Event markers are mouse-only; the same events are listed as buttons in the news panel.`
+          : "Interactive 3D globe. No geolocated intelligence events right now."
+      }
+    >
       <Canvas camera={{ position: [0, 0.4, 3.6], fov: 45 }} gl={{ antialias: false, alpha: true }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[4, 2, 4]} intensity={0.5} />
