@@ -67,14 +67,22 @@ export function OrbStage() {
 
       <div className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-6 px-6">
         {!connected && (
-          <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
+          <p
+            className="text-mono-status text-xs uppercase tracking-widest text-text-dim"
+            role="status"
+            aria-live="polite"
+          >
             {STATE_COPY[orbState]}
           </p>
         )}
       </div>
 
       {gesturesEnabled && gestureCameraActive && (
-        <p className="text-mono-status absolute bottom-6 left-6 text-[10px] uppercase tracking-widest text-text-faint">
+        <p
+          className="text-mono-status absolute bottom-6 left-6 text-[10px] uppercase tracking-widest text-text-faint"
+          role="status"
+          aria-live="polite"
+        >
           Gestures: on
         </p>
       )}

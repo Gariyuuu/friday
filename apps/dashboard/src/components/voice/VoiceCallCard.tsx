@@ -76,13 +76,21 @@ export function VoiceCallCard({ muted, onToggleMute }: { muted: boolean; onToggl
       <div className="flex flex-col items-center gap-1">
         <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
         <h2 className="mt-2 text-lg font-semibold tracking-wide text-text">F.R.I.D.A.Y.</h2>
-        <p className="text-mono-status text-xs uppercase tracking-widest text-text-dim">
+        <p
+          className="text-mono-status text-xs uppercase tracking-widest text-text-dim"
+          role="status"
+          aria-live="polite"
+        >
           {duration ?? "0:00"} · {STATUS_LABEL[voiceStatus] ?? voiceStatus}
         </p>
       </div>
 
       {(userTranscript || transcript) && (
-        <div className="w-full rounded-lg border border-border bg-surface/60 p-3 text-center">
+        <div
+          className="w-full rounded-lg border border-border bg-surface/60 p-3 text-center"
+          role="status"
+          aria-live="polite"
+        >
           {userTranscript && (
             <p className="text-xs text-text-faint">
               <span className="text-text-dim">You: </span>

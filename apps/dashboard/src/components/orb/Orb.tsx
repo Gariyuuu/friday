@@ -72,7 +72,7 @@ export function Orb({ className, orbScale = 1 }: OrbProps) {
   const reducedMotion = usePrefersReducedMotion();
 
   return (
-    <div className={className}>
+    <div className={className} aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 4.2], fov: 42 }}
         dpr={DPR_RANGE[graphicsQuality]}
